@@ -1,0 +1,68 @@
+{
+  "name": "Transaction",
+  "type": "object",
+  "properties": {
+    "amount": {
+      "type": "number",
+      "description": "The monetary value of the transaction"
+    },
+    "date": {
+      "type": "string",
+      "format": "date",
+      "description": "The date the transaction occurred"
+    },
+    "description": {
+      "type": "string",
+      "description": "A short description of the transaction"
+    },
+    "location": {
+      "type": "string",
+      "description": "Where the transaction took place"
+    },
+    "transaction_type": {
+      "type": "string",
+      "enum": [
+        "spending",
+        "earning"
+      ],
+      "description": "Whether money was spent or earned"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "needs",
+        "wants",
+        "assets",
+        "liabilities",
+        "other"
+      ],
+      "description": "The financial category of the transaction"
+    },
+    "other_category": {
+      "type": "string",
+      "description": "A custom category name when 'other' is selected"
+    }
+  },
+  "required": [
+    "amount",
+    "date",
+    "description",
+    "location",
+    "transaction_type",
+    "category"
+  ],
+  "rls": {
+    "read": {
+      "created_by_id": "{{user.id}}"
+    },
+    "create": {
+      "created_by_id": "{{user.id}}"
+    },
+    "update": {
+      "created_by_id": "{{user.id}}"
+    },
+    "delete": {
+      "created_by_id": "{{user.id}}"
+    }
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "properties": {
+    "role": {
+      "type": "string",
+      "description": "The role of the user in the app",
+      "enum": [
+        "admin",
+        "user"
+      ]
+    },
+    "username": {
+      "type": "string",
+      "description": "The child's display username"
+    },
+    "parent_email": {
+      "type": "string",
+      "format": "email",
+      "description": "Parent's email address"
+    },
+    "parent_phone": {
+      "type": "string",
+      "description": "Parent's phone number"
+    }
+  },
+  "required": [
+    "role"
+  ],
+  "name": "User",
+  "type": "object"
+}
