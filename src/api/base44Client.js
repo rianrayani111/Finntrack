@@ -54,6 +54,8 @@ const writeRegisteredUsers = (users) => {
 
 const normalizeEmail = (email) => String(email || '').trim().toLowerCase();
 
+const findUserByEmail = (users, email) => users.find((user) => user.email === email);
+
 const createFallbackDb = () => {
   const entityStore = {
     Transaction: {
@@ -85,8 +87,17 @@ const createFallbackDb = () => {
   };
 
   const auth = {
-    isAuthenticated: async () => Boolean(readAuth()?.token),
-    me: async () => readAuth()?.user || null,
+    isAuthenticated: async () => {
+      const authState = readAuth();
+      return Boolean(authState?.token) && !authState?.pendingOtp;
+    },
+    me: async () => {
+      const authState = readAuth();
+      if (!authState?.token || authState?.pendingOtp) {
+        return null;
+      }
+      return authState?.user || null;
+    },
     setToken: async (token) => {
       const existing = readAuth() || { user: null };
       existing.token = token;
@@ -96,7 +107,7 @@ const createFallbackDb = () => {
     loginViaEmailPassword: async (email, password) => {
       const normalizedEmail = normalizeEmail(email);
       const users = readRegisteredUsers();
-      const registeredUser = users.find((user) => user.email === normalizedEmail);
+      const registeredUser = findUserByEmail(users, normalizedEmail);
 
       if (!registeredUser) {
         throw new Error('Incorrect email or password.');
@@ -104,6 +115,10 @@ const createFallbackDb = () => {
 
       if (String(password) !== String(registeredUser.password)) {
         throw new Error('Incorrect email or password.');
+      }
+
+      if (registeredUser.verified === false) {
+        throw new Error('Please verify your email before logging in.');
       }
 
       const user = {
@@ -121,6 +136,10 @@ const createFallbackDb = () => {
       const users = readRegisteredUsers();
       const alreadyExists = users.some((user) => user.email === normalizedEmail);
 
+      if (!normalizedEmail || !String(payload?.password || '').trim()) {
+        throw new Error('Email and password are required.');
+      }
+
       if (alreadyExists) {
         throw new Error('An account with this email already exists.');
       }
@@ -130,6 +149,7 @@ const createFallbackDb = () => {
         email: normalizedEmail,
         username: normalizedEmail.split('@')[0] || 'user',
         password: String(payload?.password ?? ''),
+        verified: false,
         createdAt: Date.now()
       };
 
@@ -142,32 +162,40 @@ const createFallbackDb = () => {
         username: userRecord.username,
         data: {}
       };
-      const authState = { token: `local-${createId()}`, user, pendingOtp: createOtpCode() };
+      const authState = { token: null, user, pendingOtp: createOtpCode(), pendingEmail: normalizedEmail };
       writeAuth(authState);
-      return { access_token: authState.token, user, otpCode: authState.pendingOtp };
+      return { user, otpCode: authState.pendingOtp };
     },
     verifyOtp: async (payload = {}) => {
       const authState = readAuth() || { user: null };
       const enteredCode = String(payload?.otpCode ?? payload?.code ?? '').trim();
       const expectedCode = authState.pendingOtp;
+      const normalizedEmail = normalizeEmail(payload?.email || authState?.pendingEmail || authState?.user?.email || '');
 
-      if (expectedCode) {
-        if (!enteredCode) {
-          throw new Error('Please enter the verification code.');
-        }
-        if (!/^\d{6}$/.test(enteredCode)) {
-          throw new Error('Please enter the 6-digit verification code.');
-        }
-        if (enteredCode === expectedCode || enteredCode.length === 6) {
-          authState.token = authState.token || `local-${createId()}`;
-          delete authState.pendingOtp;
-          writeAuth(authState);
-          return { access_token: authState.token };
-        }
+      if (!expectedCode) {
+        throw new Error('No verification code is pending. Please register or resend a code.');
+      }
+
+      if (!enteredCode) {
+        throw new Error('Please enter the verification code.');
+      }
+      if (!/^\d{6}$/.test(enteredCode)) {
+        throw new Error('Please enter the 6-digit verification code.');
+      }
+      if (enteredCode !== expectedCode) {
         throw new Error('Invalid verification code.');
       }
 
+      const users = readRegisteredUsers();
+      const userIndex = users.findIndex((user) => user.email === normalizedEmail);
+      if (userIndex >= 0) {
+        users[userIndex] = { ...users[userIndex], verified: true };
+        writeRegisteredUsers(users);
+      }
+
       authState.token = authState.token || `local-${createId()}`;
+      delete authState.pendingOtp;
+      delete authState.pendingEmail;
       writeAuth(authState);
       return { access_token: authState.token };
     },
@@ -177,8 +205,14 @@ const createFallbackDb = () => {
       writeAuth(authState);
       return authState.user;
     },
-    resendOtp: async () => {
+    resendOtp: async (email) => {
       const authState = readAuth() || { user: null };
+      const normalizedEmail = normalizeEmail(email || authState?.pendingEmail || authState?.user?.email || '');
+      if (!normalizedEmail) {
+        throw new Error('Email is required to resend verification code.');
+      }
+
+      authState.pendingEmail = normalizedEmail;
       authState.pendingOtp = createOtpCode();
       writeAuth(authState);
       return { success: true, otpCode: authState.pendingOtp };
@@ -215,62 +249,7 @@ const wrapAuth = (auth) => {
     return auth;
   }
 
-  return {
-    ...auth,
-    loginViaEmailPassword: async (email, password) => {
-      const normalizedEmail = normalizeEmail(email);
-      const users = readRegisteredUsers();
-      const registeredUser = users.find((user) => user.email === normalizedEmail);
-
-      if (!registeredUser) {
-        throw new Error('Incorrect email or password.');
-      }
-
-      if (String(password) !== String(registeredUser.password)) {
-        throw new Error('Incorrect email or password.');
-      }
-
-      const user = {
-        id: registeredUser.id,
-        email: normalizedEmail,
-        username: registeredUser.username || normalizedEmail.split('@')[0],
-        data: {}
-      };
-      const authState = { token: `local-${createId()}`, user };
-      writeAuth(authState);
-      return { access_token: authState.token, user };
-    },
-    register: async (payload) => {
-      const normalizedEmail = normalizeEmail(payload?.email || '');
-      const users = readRegisteredUsers();
-      const alreadyExists = users.some((user) => user.email === normalizedEmail);
-
-      if (alreadyExists) {
-        throw new Error('An account with this email already exists.');
-      }
-
-      const userRecord = {
-        id: createId(),
-        email: normalizedEmail,
-        username: normalizedEmail.split('@')[0] || 'user',
-        password: String(payload?.password ?? ''),
-        createdAt: Date.now()
-      };
-
-      users.push(userRecord);
-      writeRegisteredUsers(users);
-
-      const user = {
-        id: userRecord.id,
-        email: normalizedEmail,
-        username: userRecord.username,
-        data: {}
-      };
-      const authState = { token: `local-${createId()}`, user, pendingOtp: createOtpCode() };
-      writeAuth(authState);
-      return { access_token: authState.token, user, otpCode: authState.pendingOtp };
-    }
-  };
+  return auth;
 };
 
 export const db = {

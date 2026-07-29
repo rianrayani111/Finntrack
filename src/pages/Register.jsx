@@ -50,7 +50,13 @@ export default function Register() {
     }
     setLoading(true);
     try {
-      await db.auth.register({ email, password });
+      const result = await db.auth.register({ email, password });
+      if (result?.otpCode) {
+        toast({
+          title: "Verification code (local preview)",
+          description: `Use this code to verify: ${result.otpCode}`,
+        });
+      }
       setShowOtp(true);
     } catch (err) {
       setError(err.message || "Registration failed.");
@@ -86,8 +92,15 @@ export default function Register() {
   const handleResend = async () => {
     setError("");
     try {
-      await db.auth.resendOtp(email);
-      toast({ title: "Code sent", description: "Check your email for the new code." });
+      const result = await db.auth.resendOtp(email);
+      if (result?.otpCode) {
+        toast({
+          title: "Verification code resent (local preview)",
+          description: `Use this code to verify: ${result.otpCode}`,
+        });
+      } else {
+        toast({ title: "Code sent", description: "Check your email for the new code." });
+      }
     } catch (err) {
       setError(err.message || "Failed to resend code.");
     }
@@ -100,9 +113,7 @@ export default function Register() {
         <p className="text-sm text-muted-foreground font-semibold text-center mb-2">
           We sent a code to {email}
         </p>
-        <p className="text-xs text-muted-foreground text-center mb-5">
-          For local preview, any 6-digit code will verify.
-        </p>
+        <p className="text-xs text-muted-foreground text-center mb-5">Enter the 6-digit code.</p>
 
         {error && (
           <div className="mb-4 p-3 rounded-2xl bg-red-50 text-red-500 text-sm font-bold text-center">
