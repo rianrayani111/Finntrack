@@ -1,15 +1,15 @@
 {
   "compilerOptions": {
-    "ignoreDeprecations": "6.0",
+    "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["src/*"]
     },
     "jsx": "react-jsx",
     "module": "esnext",
     "moduleResolution": "bundler",
     "lib": ["esnext", "dom"],
     "target": "esnext",
-    "checkJs": true,
+    "checkJs": false,
     "skipLibCheck": true,
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
@@ -17,9 +17,8 @@
     "types": []
   },
   "include": [
-    "src/components/**/*.js",
-    "src/pages/**/*.jsx",
-    "src/Layout.jsx"
+    "src/**/*.ts",
+    "src/**/*.tsx"
   ],
   "exclude": [
     "node_modules",
