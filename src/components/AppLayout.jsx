@@ -2,6 +2,17 @@ import React, { useState } from "react";
 import { db } from '@/api/base44Client';
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import {
   LayoutDashboard,
@@ -14,7 +25,7 @@ import {
   X,
   LogOut,
 } from "lucide-react";
-import DolphinMascot from "@/components/DolphinMascot";
+import FinnLogo from "@/components/FinnLogo";
 
 const NAV_ITEMS = [
   { label: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
@@ -43,7 +54,7 @@ export default function AppLayout() {
       <div className="flex flex-1">
         <aside className="hidden lg:flex w-72 flex-col border-r border-slate-200 bg-slate-50/80 p-6">
           <div className="flex items-center gap-3 mb-8">
-            <DolphinMascot className="w-14 h-14" />
+            <FinnLogo className="w-14 h-14" />
             <div>
               <h2 className="text-lg font-extrabold text-slate-800">FinnTrack</h2>
               <p className="text-sm text-slate-500">Budgeting made simple</p>
@@ -68,14 +79,34 @@ export default function AppLayout() {
           </nav>
 
           <div className="mt-auto pt-6 border-t border-slate-200">
-            <Button
-              variant="outline"
-              className="w-full justify-start gap-2 rounded-2xl"
-              onClick={handleLogout}
-            >
-              <LogOut className="w-4 h-4" />
-              Log out
-            </Button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  variant="ghost"
+                  className="w-full justify-start gap-2 rounded-2xl text-red-600 hover:bg-red-50 hover:text-red-700"
+                >
+                  <LogOut className="w-4 h-4" />
+                  Logout
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Are you sure you want to log out?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    You will be signed out and returned to the login page.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    className="bg-sky-600 text-white hover:bg-sky-700"
+                    onClick={handleLogout}
+                  >
+                    Logout
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </div>
         </aside>
 
@@ -105,10 +136,10 @@ export default function AppLayout() {
 
       {mobileOpen && (
         <div className="fixed inset-0 z-40 bg-slate-900/50 lg:hidden" onClick={() => setMobileOpen(false)}>
-          <div className="w-72 h-full bg-white p-4" onClick={(e) => e.stopPropagation()}>
+          <div className="w-72 h-full bg-white p-4 flex flex-col" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-3">
-                <DolphinMascot className="w-12 h-12" />
+                <FinnLogo className="w-12 h-12" />
                 <div>
                   <h2 className="font-extrabold text-slate-800">FinnTrack</h2>
                   <p className="text-sm text-slate-500">Budgeting made simple</p>
@@ -136,6 +167,40 @@ export default function AppLayout() {
                 </Link>
               ))}
             </nav>
+
+            <div className="mt-auto pt-6 border-t border-slate-200">
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    className="w-full justify-start gap-2 rounded-2xl text-red-600 hover:bg-red-50 hover:text-red-700"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    Logout
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Are you sure you want to log out?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      You will be signed out and returned to the login page.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                      className="bg-sky-600 text-white hover:bg-sky-700"
+                      onClick={async () => {
+                        setMobileOpen(false);
+                        await handleLogout();
+                      }}
+                    >
+                      Logout
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
           </div>
         </div>
       )}

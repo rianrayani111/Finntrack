@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ArrowLeft, Save, X } from 'lucide-react';
-import DolphinMascot from '@/components/DolphinMascot';
+import FinnLogo from '@/components/FinnLogo';
 import { toast } from '@/components/ui/use-toast';
 
 export default function ParentEditTransaction() {
@@ -114,7 +114,7 @@ export default function ParentEditTransaction() {
 
       <div className="finn-card">
         <div className="flex items-center gap-3 mb-6">
-          <DolphinMascot className="w-14 h-14" />
+          <FinnLogo className="w-14 h-14" />
           <div>
             <h1 className="text-2xl font-extrabold text-slate-800">Edit Child Transaction</h1>
             <p className="text-sm text-muted-foreground font-semibold">

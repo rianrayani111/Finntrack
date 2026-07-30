@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/lib/AuthContext";
 import { LogOut, UserCircle } from "lucide-react";
-import DolphinMascot from "@/components/DolphinMascot";
+import FinnLogo from "@/components/FinnLogo";
 import { toast } from "@/components/ui/use-toast";
 
 export default function Profile() {
@@ -41,7 +41,7 @@ export default function Profile() {
     <div className="max-w-2xl mx-auto space-y-6">
       <div className="finn-card">
         <div className="flex items-center gap-3 mb-6">
-          <DolphinMascot className="w-14 h-14" />
+          <FinnLogo className="w-14 h-14" />
           <div>
             <h1 className="text-2xl font-extrabold text-slate-800">Profile</h1>
             <p className="text-sm text-muted-foreground font-semibold">Keep your account details up to date.</p>

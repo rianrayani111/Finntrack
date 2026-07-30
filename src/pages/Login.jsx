@@ -47,7 +47,7 @@ export default function Login() {
     setLoading(true);
     try {
       await loginChild(childUsername, childPassword);
-      window.location.assign('/');
+      window.location.assign('/dashboard');
     } catch (err) {
       setError({ id: Date.now(), message: err?.message || 'Incorrect username or password.' });
     } finally {

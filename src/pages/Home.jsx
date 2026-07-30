@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import FinnLogo from '@/components/FinnLogo';
 
 const HOW_STEPS = [
   {
@@ -109,7 +110,9 @@ export default function Home() {
   return (
     <div className="ledger-page">
       <header className="ledger-topbar">
-        <p className="ledger-brand">FinnTrack</p>
+        <Link to="/" className="inline-flex items-center" aria-label="FinnTrack home">
+          <FinnLogo className="w-10 h-10" />
+        </Link>
         <Link className="ledger-login-link" to="/login">
           Login
         </Link>

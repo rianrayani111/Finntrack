@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { db } from '@/api/base44Client';
 
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import DolphinMascot from "@/components/DolphinMascot";
+import FinnLogo from "@/components/FinnLogo";
 import {
   buildMonthToDateSummary,
   buildMonthlySummary,
@@ -81,7 +81,8 @@ export default function MonthlySummary() {
         </div>
       ) : !hasAnyData ? (
         <div className="finn-card flex flex-col items-center text-center py-10">
-          <DolphinMascot className="w-40 h-40" message="No data available yet." />
+          <FinnLogo className="w-40 h-40" />
+          <p className="mt-4 text-base font-extrabold text-slate-700">No data available yet.</p>
         </div>
       ) : (
         <div className="finn-card p-0 overflow-hidden">

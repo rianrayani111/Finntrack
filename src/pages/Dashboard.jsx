@@ -11,7 +11,7 @@ import {
   Legend,
 } from "recharts";
 import { TrendingUp, TrendingDown, PiggyBank, Wallet, PlusCircle } from "lucide-react";
-import DolphinMascot from "@/components/DolphinMascot";
+import FinnLogo from "@/components/FinnLogo";
 import {
   formatCurrency,
   currentBalance,
@@ -131,7 +131,11 @@ export default function Dashboard() {
 
       {transactions.length === 0 && (
         <div className="finn-card flex flex-col items-center text-center py-10">
-          <DolphinMascot className="w-40 h-40" message="No transactions yet. Start by logging your first withdrawal." />
+          <FinnLogo className="w-40 h-40" />
+          <p className="mt-4 text-base font-extrabold text-slate-700">No transactions yet.</p>
+          <p className="text-sm text-muted-foreground font-semibold">
+            Start by logging your first withdrawal.
+          </p>
         </div>
       )}
 

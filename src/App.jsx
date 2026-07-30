@@ -46,6 +46,23 @@ const RoleHome = () => {
   return <Navigate to="/dashboard" replace />;
 };
 
+const RootRoute = () => {
+  const { isAuthenticated, isLoadingAuth, authChecked, role } = useAuth();
+
+  if (!authChecked || isLoadingAuth) {
+    return <Home />;
+  }
+
+  if (isAuthenticated) {
+    if (role === 'parent') {
+      return <Navigate to="/parent" replace />;
+    }
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  return <Home />;
+};
+
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings } = useAuth();
 
@@ -60,7 +77,7 @@ const AuthenticatedApp = () => {
 
   return (
     <Routes>
-      <Route path="/" element={<Home />} />
+      <Route path="/" element={<RootRoute />} />
       <Route path="/login" element={<Login />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />

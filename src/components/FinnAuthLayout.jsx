@@ -1,5 +1,6 @@
 import React from "react";
 import DolphinMascot from "@/components/DolphinMascot";
+import FinnLogo from "@/components/FinnLogo";
 
 export default function FinnAuthLayout({ children, showMascot = true, mascotMessage }) {
   return (
@@ -12,9 +13,7 @@ export default function FinnAuthLayout({ children, showMascot = true, mascotMess
       <div className="relative w-full max-w-md">
         <div className="text-center mb-6">
           <div className="inline-flex items-center gap-2 justify-center mb-2">
-            <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center shadow-lg">
-              <span className="text-2xl">🐬</span>
-            </div>
+            <FinnLogo className="w-12 h-12" />
             <h1 className="text-3xl font-extrabold text-white tracking-tight">
               Finn<span className="text-amber-300">Track</span>
             </h1>
