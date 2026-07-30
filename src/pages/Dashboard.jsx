@@ -130,8 +130,8 @@ export default function Dashboard() {
       </div>
 
       {transactions.length === 0 && (
-        <div className="finn-card flex flex-col items-center text-center py-10">
-          <FinnLogo className="w-40 h-40" />
+        <div className="finn-card flex flex-col items-center text-center py-12">
+          <FinnLogo className="w-56 h-56" />
           <p className="mt-4 text-base font-extrabold text-slate-700">No transactions yet.</p>
           <p className="text-sm text-muted-foreground font-semibold">
             Start by logging your first withdrawal.
