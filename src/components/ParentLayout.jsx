@@ -1,40 +1,38 @@
-import React, { useState } from "react";
-import { db } from '@/api/base44Client';
-import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
-
-import { Button } from "@/components/ui/button";
+import React, { useState } from 'react';
+import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
 import {
   LayoutDashboard,
   PlusCircle,
-  CalendarRange,
-  History,
   Target,
-  UserCircle,
+  Bell,
+  UserPlus,
+  LogOut,
   Menu,
   X,
-  LogOut,
-} from "lucide-react";
-import DolphinMascot from "@/components/DolphinMascot";
+} from 'lucide-react';
+import DolphinMascot from '@/components/DolphinMascot';
+import { useAuth } from '@/lib/AuthContext';
 
 const NAV_ITEMS = [
-  { label: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
-  { label: "Log Withdrawal", path: "/add", icon: PlusCircle },
-  { label: "Monthly Summary", path: "/summary", icon: CalendarRange },
-  { label: "Transaction History", path: "/history", icon: History },
-  { label: "Goals", path: "/goals", icon: Target },
-  { label: "Profile", path: "/profile", icon: UserCircle },
+  { label: 'Dashboard', path: '/parent', icon: LayoutDashboard },
+  { label: 'Add Money', path: '/parent/add-money', icon: PlusCircle },
+  { label: 'Goals', path: '/parent/goals', icon: Target },
+  { label: 'Alerts', path: '/parent/alerts', icon: Bell },
+  { label: 'Add a Child', path: '/parent/add-child', icon: UserPlus },
 ];
 
-export default function AppLayout() {
+export default function ParentLayout() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { logout } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const isActive = (path) =>
-    path === "/dashboard" ? location.pathname === "/dashboard" : location.pathname.startsWith(path);
+    path === '/parent' ? location.pathname === '/parent' : location.pathname.startsWith(path);
 
   const handleLogout = async () => {
-    await db.auth.logout();
+    await logout(false);
     navigate('/login');
   };
 
@@ -45,8 +43,8 @@ export default function AppLayout() {
           <div className="flex items-center gap-3 mb-8">
             <DolphinMascot className="w-14 h-14" />
             <div>
-              <h2 className="text-lg font-extrabold text-slate-800">FinnTrack</h2>
-              <p className="text-sm text-slate-500">Budgeting made simple</p>
+              <h2 className="text-lg font-extrabold text-slate-800">FinnTrack Parent</h2>
+              <p className="text-sm text-slate-500">Family overview</p>
             </div>
           </div>
 
@@ -57,8 +55,8 @@ export default function AppLayout() {
                 to={path}
                 className={`flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-bold transition ${
                   isActive(path)
-                    ? "bg-sky-500 text-white shadow-md"
-                    : "text-slate-600 hover:bg-slate-100"
+                    ? 'bg-sky-500 text-white shadow-md'
+                    : 'text-slate-600 hover:bg-slate-100'
                 }`}
               >
                 <Icon className="w-5 h-5" />
@@ -91,8 +89,8 @@ export default function AppLayout() {
                 <Menu className="w-5 h-5" />
               </Button>
               <div>
-                <p className="text-sm font-semibold text-slate-500">Hello, friend</p>
-                <h1 className="text-xl font-extrabold text-slate-800">Keep growing your savings</h1>
+                <p className="text-sm font-semibold text-slate-500">Parent view</p>
+                <h1 className="text-xl font-extrabold text-slate-800">Manage all child accounts</h1>
               </div>
             </div>
           </header>
@@ -110,8 +108,8 @@ export default function AppLayout() {
               <div className="flex items-center gap-3">
                 <DolphinMascot className="w-12 h-12" />
                 <div>
-                  <h2 className="font-extrabold text-slate-800">FinnTrack</h2>
-                  <p className="text-sm text-slate-500">Budgeting made simple</p>
+                  <h2 className="font-extrabold text-slate-800">FinnTrack Parent</h2>
+                  <p className="text-sm text-slate-500">Family overview</p>
                 </div>
               </div>
               <Button variant="ghost" size="icon" onClick={() => setMobileOpen(false)}>
@@ -127,8 +125,8 @@ export default function AppLayout() {
                   onClick={() => setMobileOpen(false)}
                   className={`flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-bold transition ${
                     isActive(path)
-                      ? "bg-sky-500 text-white shadow-md"
-                      : "text-slate-600 hover:bg-slate-100"
+                      ? 'bg-sky-500 text-white shadow-md'
+                      : 'text-slate-600 hover:bg-slate-100'
                   }`}
                 >
                   <Icon className="w-5 h-5" />

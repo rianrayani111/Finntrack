@@ -21,6 +21,8 @@ import {
   assetsVsLiabilitiesData,
   sortByDateDesc,
   CATEGORY_LABELS,
+  transactionType,
+  transactionReason,
 } from "@/lib/finance";
 
 const now = new Date();
@@ -123,13 +125,13 @@ export default function Dashboard() {
           className="inline-flex items-center gap-2 bg-sky-500 hover:bg-sky-600 text-white font-bold px-5 py-3 rounded-2xl shadow-md transition-all"
         >
           <PlusCircle className="w-5 h-5" />
-          Add Transaction
+          Log Withdrawal
         </Link>
       </div>
 
       {transactions.length === 0 && (
         <div className="finn-card flex flex-col items-center text-center py-10">
-          <DolphinMascot className="w-40 h-40" message="No transactions yet. Start by adding your first earning or spending!" />
+          <DolphinMascot className="w-40 h-40" message="No transactions yet. Start by logging your first withdrawal." />
         </div>
       )}
 
@@ -203,7 +205,7 @@ export default function Dashboard() {
         ) : (
           <div className="space-y-2">
             {recent.map((t) => {
-              const isEarn = t.transaction_type === "earning";
+              const isEarn = transactionType(t) === "deposit";
               return (
                 <div
                   key={t.id}
@@ -218,10 +220,10 @@ export default function Dashboard() {
                       {isEarn ? <TrendingUp className="w-5 h-5" /> : <TrendingDown className="w-5 h-5" />}
                     </div>
                     <div className="min-w-0">
-                      <p className="font-bold text-slate-700 truncate">{t.description}</p>
+                      <p className="font-bold text-slate-700 truncate">{transactionReason(t)}</p>
                       <p className="text-xs text-muted-foreground font-semibold">
                         {new Date(t.date).toLocaleDateString("en-US", { month: "short", day: "numeric" })} ·{" "}
-                        {CATEGORY_LABELS[t.category]}
+                        {CATEGORY_LABELS[String(t.category)] || 'Deposit'}
                       </p>
                     </div>
                   </div>

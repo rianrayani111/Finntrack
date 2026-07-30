@@ -5,31 +5,26 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/lib/AuthContext";
-import { LogOut, UserCircle, Mail, Phone } from "lucide-react";
+import { LogOut, UserCircle } from "lucide-react";
 import DolphinMascot from "@/components/DolphinMascot";
 import { toast } from "@/components/ui/use-toast";
 
 export default function Profile() {
-  const { user, logout } = useAuth();
-  const [username, setUsername] = useState("");
-  const [parentEmail, setParentEmail] = useState("");
-  const [parentPhone, setParentPhone] = useState("");
+  const { user, profile, logout, refreshProfile } = useAuth();
+  const [displayName, setDisplayName] = useState("");
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    setUsername(user?.data?.username || user?.username || "");
-    setParentEmail(user?.data?.parent_email || "");
-    setParentPhone(user?.data?.parent_phone || "");
-  }, [user]);
+    setDisplayName(profile?.displayName || user?.displayName || "");
+  }, [profile, user]);
 
   const handleSave = async () => {
     setSaving(true);
     try {
       await db.auth.updateMe({
-        username: username.trim(),
-        parent_email: parentEmail.trim(),
-        parent_phone: parentPhone.trim(),
+        displayName: displayName.trim(),
       });
+      await refreshProfile();
       toast({ title: "Profile updated." });
     } catch (err) {
       toast({ title: "Could not save", description: err.message, variant: "destructive" });
@@ -55,41 +50,13 @@ export default function Profile() {
 
         <div className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="username">Username</Label>
+            <Label htmlFor="displayName">Display Name</Label>
             <Input
-              id="username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              id="displayName"
+              value={displayName}
+              onChange={(e) => setDisplayName(e.target.value)}
               placeholder="Your display name"
             />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="parentEmail">Parent / Guardian Email</Label>
-            <div className="relative">
-              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                id="parentEmail"
-                value={parentEmail}
-                onChange={(e) => setParentEmail(e.target.value)}
-                placeholder="you@example.com"
-                className="pl-10"
-              />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="parentPhone">Parent / Guardian Phone</Label>
-            <div className="relative">
-              <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                id="parentPhone"
-                value={parentPhone}
-                onChange={(e) => setParentPhone(e.target.value)}
-                placeholder="(555) 123-4567"
-                className="pl-10"
-              />
-            </div>
           </div>
 
           <div className="flex flex-wrap gap-3 pt-2">
@@ -110,7 +77,9 @@ export default function Profile() {
           <h2 className="font-extrabold">Account info</h2>
         </div>
         <p className="mt-3 text-sm text-muted-foreground font-semibold">
-          {user?.email || user?.data?.email || "Signed in locally in this browser."}
+          {profile?.role === 'parent'
+            ? `Parent email: ${user?.email || 'Unknown'}`
+            : `Kid username: @${profile?.username || user?.username || 'unknown'}`}
         </p>
       </div>
     </div>

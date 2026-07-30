@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { db } from '@/api/base44Client';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,17 +10,48 @@ import { ArrowLeft, Save, X } from 'lucide-react';
 import DolphinMascot from '@/components/DolphinMascot';
 import { toast } from '@/components/ui/use-toast';
 
-export default function AddTransaction() {
+export default function ParentEditTransaction() {
   const navigate = useNavigate();
+  const { transactionId } = useParams();
 
+  const [type, setType] = useState('withdrawal');
   const [amount, setAmount] = useState('');
-  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
-  const [time, setTime] = useState(new Date().toTimeString().slice(0, 5));
+  const [date, setDate] = useState('');
+  const [time, setTime] = useState('');
   const [reason, setReason] = useState('');
   const [location, setLocation] = useState('');
   const [category, setCategory] = useState('');
   const [errors, setErrors] = useState({});
+  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    db.entities.Transaction.get(transactionId)
+      .then((txn) => {
+        if (!txn) {
+          toast({ title: 'Transaction not found.', variant: 'destructive' });
+          navigate('/parent/alerts');
+          return;
+        }
+
+        setType(String(txn.type || 'withdrawal'));
+        setAmount(String(txn.amount || ''));
+        setDate(String(txn.date || ''));
+        setTime(String(txn.time || ''));
+        setReason(String(txn.reason || ''));
+        setLocation(String(txn.location || ''));
+        setCategory(String(txn.category || ''));
+      })
+      .catch((error) => {
+        toast({
+          title: 'Could not load transaction',
+          description: error.message || 'Please try again.',
+          variant: 'destructive',
+        });
+        navigate('/parent/alerts');
+      })
+      .finally(() => setLoading(false));
+  }, [navigate, transactionId]);
 
   const validate = () => {
     const nextErrors = {};
@@ -28,8 +59,10 @@ export default function AddTransaction() {
     if (!date) nextErrors.date = 'Please select a date.';
     if (!time) nextErrors.time = 'Please select a time.';
     if (!reason.trim()) nextErrors.reason = 'Please enter a reason.';
-    if (!location.trim()) nextErrors.location = 'Please enter a location.';
-    if (!category) nextErrors.category = 'Please choose a category.';
+    if (type === 'withdrawal') {
+      if (!location.trim()) nextErrors.location = 'Please enter a location.';
+      if (!category) nextErrors.category = 'Please choose a category.';
+    }
     setErrors(nextErrors);
     return Object.keys(nextErrors).length === 0;
   };
@@ -39,28 +72,36 @@ export default function AddTransaction() {
 
     setSaving(true);
     try {
-      await db.entities.Transaction.create({
-        type: 'withdrawal',
+      await db.entities.Transaction.update(transactionId, {
+        type,
         amount: Number(amount),
         date,
         time,
         reason: reason.trim(),
-        location: location.trim(),
-        category,
+        location: type === 'withdrawal' ? location.trim() : '',
+        category: type === 'withdrawal' ? category : null,
       });
 
-      toast({ title: 'Withdrawal saved.' });
-      navigate('/dashboard');
+      toast({ title: 'Transaction updated.' });
+      navigate('/parent/alerts');
     } catch (error) {
       toast({
         title: 'Something went wrong',
-        description: error.message || 'Could not save your withdrawal.',
+        description: error.message || 'Could not update this transaction.',
         variant: 'destructive',
       });
     } finally {
       setSaving(false);
     }
   };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center py-20">
+        <div className="w-8 h-8 border-4 border-sky-200 border-t-sky-600 rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-2xl mx-auto">
@@ -75,14 +116,27 @@ export default function AddTransaction() {
         <div className="flex items-center gap-3 mb-6">
           <DolphinMascot className="w-14 h-14" />
           <div>
-            <h1 className="text-2xl font-extrabold text-slate-800">Log a Withdrawal</h1>
+            <h1 className="text-2xl font-extrabold text-slate-800">Edit Child Transaction</h1>
             <p className="text-sm text-muted-foreground font-semibold">
-              Record money you spent.
+              Update the full transaction details from the alert.
             </p>
           </div>
         </div>
 
         <div className="space-y-5">
+          <div className="space-y-2">
+            <Label className="font-bold text-slate-700">Type</Label>
+            <Select value={type} onValueChange={setType}>
+              <SelectTrigger className="h-12 text-base rounded-2xl border-2">
+                <SelectValue placeholder="Choose a type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="withdrawal">Withdrawal</SelectItem>
+                <SelectItem value="deposit">Deposit</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
             <div className="space-y-2">
               <Label htmlFor="amount" className="font-bold text-slate-700">
@@ -147,35 +201,39 @@ export default function AddTransaction() {
             {errors.reason && <p className="text-sm text-red-500 font-semibold">{errors.reason}</p>}
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="location" className="font-bold text-slate-700">
-              Location
-            </Label>
-            <Input
-              id="location"
-              placeholder="e.g. School canteen"
-              value={location}
-              onChange={(e) => setLocation(e.target.value)}
-              className="h-12 text-base rounded-2xl border-2"
-            />
-            {errors.location && <p className="text-sm text-red-500 font-semibold">{errors.location}</p>}
-          </div>
+          {type === 'withdrawal' && (
+            <>
+              <div className="space-y-2">
+                <Label htmlFor="location" className="font-bold text-slate-700">
+                  Location
+                </Label>
+                <Input
+                  id="location"
+                  placeholder="e.g. School canteen"
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
+                  className="h-12 text-base rounded-2xl border-2"
+                />
+                {errors.location && <p className="text-sm text-red-500 font-semibold">{errors.location}</p>}
+              </div>
 
-          <div className="space-y-2">
-            <Label className="font-bold text-slate-700">Category</Label>
-            <Select value={category} onValueChange={setCategory}>
-              <SelectTrigger className="h-12 text-base rounded-2xl border-2">
-                <SelectValue placeholder="Choose a category" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="necessity">Necessity</SelectItem>
-                <SelectItem value="want">Want</SelectItem>
-                <SelectItem value="asset">Asset</SelectItem>
-                <SelectItem value="liability">Liability</SelectItem>
-              </SelectContent>
-            </Select>
-            {errors.category && <p className="text-sm text-red-500 font-semibold">{errors.category}</p>}
-          </div>
+              <div className="space-y-2">
+                <Label className="font-bold text-slate-700">Category</Label>
+                <Select value={category} onValueChange={setCategory}>
+                  <SelectTrigger className="h-12 text-base rounded-2xl border-2">
+                    <SelectValue placeholder="Choose a category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="necessity">Necessity</SelectItem>
+                    <SelectItem value="want">Want</SelectItem>
+                    <SelectItem value="asset">Asset</SelectItem>
+                    <SelectItem value="liability">Liability</SelectItem>
+                  </SelectContent>
+                </Select>
+                {errors.category && <p className="text-sm text-red-500 font-semibold">{errors.category}</p>}
+              </div>
+            </>
+          )}
 
           <div className="flex gap-3 pt-2">
             <Button
@@ -191,7 +249,7 @@ export default function AddTransaction() {
               ) : (
                 <span className="flex items-center gap-2">
                   <Save className="w-5 h-5" />
-                  Save Withdrawal
+                  Save Changes
                 </span>
               )}
             </Button>

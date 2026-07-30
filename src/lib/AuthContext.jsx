@@ -1,200 +1,176 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
+import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
 
 import { db } from '@/api/base44Client';
-import { appParams } from '@/lib/app-params';
 
 const AuthContext = createContext();
 
-const createAxiosClient = ({ baseURL = '/', headers = {}, token = null, interceptResponses = false } = {}) => ({
-  get: async () => {
-    if (typeof window === 'undefined') {
-      return { id: appParams.appId, public_settings: {} };
-    }
-
-    if (!appParams.appId) {
-      return { id: appParams.appId, public_settings: {} };
-    }
-
-    if (interceptResponses && token) {
-      return { id: appParams.appId, public_settings: {} };
-    }
-
-    return { id: appParams.appId, public_settings: {} };
-  },
-  post: async () => ({ success: true }),
-  put: async () => ({ success: true }),
-  delete: async () => ({ success: true }),
-  headers: { ...headers, ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-  baseURL,
-});
+const clearAuthState = (setters) => {
+  setters.setUser(null);
+  setters.setProfile(null);
+  setters.setRole(null);
+  setters.setIsAuthenticated(false);
+};
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
+  const [profile, setProfile] = useState(null);
+  const [role, setRole] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
-  const [isLoadingPublicSettings, setIsLoadingPublicSettings] = useState(true);
+  const [isLoadingPublicSettings, setIsLoadingPublicSettings] = useState(false);
   const [authError, setAuthError] = useState(null);
   const [authChecked, setAuthChecked] = useState(false);
-  const [appPublicSettings, setAppPublicSettings] = useState(null); // Contains only { id, public_settings }
+  const [appPublicSettings, setAppPublicSettings] = useState(null);
 
-  useEffect(() => {
-    checkAppState();
+  const checkUserAuth = useCallback(async () => {
+    try {
+      setIsLoadingAuth(true);
+      setAuthError(null);
+      const currentUser = await db.auth.me();
+
+      if (!currentUser) {
+        clearAuthState({ setUser, setProfile, setRole, setIsAuthenticated });
+        setAuthChecked(true);
+        setIsLoadingAuth(false);
+        return null;
+      }
+
+      const userProfile = await db.users.getMyProfile();
+      setUser(currentUser);
+      setProfile(userProfile);
+      setRole(userProfile.role);
+      setIsAuthenticated(true);
+      setAuthChecked(true);
+      setIsLoadingAuth(false);
+      return userProfile;
+    } catch (error) {
+      clearAuthState({ setUser, setProfile, setRole, setIsAuthenticated });
+      setAuthError({ type: 'auth_required', message: error.message || 'Authentication required.' });
+      setAuthChecked(true);
+      setIsLoadingAuth(false);
+      return null;
+    }
   }, []);
 
-  const checkAppState = async () => {
+  useEffect(() => {
+    checkUserAuth();
+  }, [checkUserAuth]);
+
+  const login = async (email, password, expectedRole) => {
     try {
-      setIsLoadingPublicSettings(true);
-      setAuthError(null);
-      
-      // First, check app public settings (with token if available)
-      // This will tell us if auth is required, user not registered, etc.
-      const appClient = createAxiosClient({
-        baseURL: `/api/apps/public`,
-        headers: {
-          'X-App-Id': appParams.appId
-        },
-        token: appParams.token, // Include token if available
-        interceptResponses: true
-      });
-      
-      try {
-        const publicSettings = await appClient.get(`/prod/public-settings/by-id/${appParams.appId}`);
-        setAppPublicSettings(publicSettings);
-
-        const hasExistingSession = await db.auth.isAuthenticated();
-
-        // If we got the app public settings successfully, check if user is authenticated
-        if (appParams.token || hasExistingSession) {
-          await checkUserAuth();
-        } else {
-          setIsLoadingAuth(false);
-          setIsAuthenticated(false);
-          setAuthChecked(true);
-        }
-        setIsLoadingPublicSettings(false);
-      } catch (appError) {
-        console.error('App state check failed:', appError);
-        
-        // Handle app-level errors
-        if (appError.status === 403 && appError.data?.extra_data?.reason) {
-          const reason = appError.data.extra_data.reason;
-          if (reason === 'auth_required') {
-            setAuthError({
-              type: 'auth_required',
-              message: 'Authentication required'
-            });
-          } else if (reason === 'user_not_registered') {
-            setAuthError({
-              type: 'user_not_registered',
-              message: 'User not registered for this app'
-            });
-          } else {
-            setAuthError({
-              type: reason,
-              message: appError.message
-            });
-          }
-        } else {
-          setAuthError({
-            type: 'unknown',
-            message: appError.message || 'Failed to load app'
-          });
-        }
-        setIsLoadingPublicSettings(false);
-        setIsLoadingAuth(false);
-      }
-    } catch (error) {
-      console.error('Unexpected error:', error);
-      setAuthError({
-        type: 'unknown',
-        message: error.message || 'An unexpected error occurred'
-      });
-      setIsLoadingPublicSettings(false);
-      setIsLoadingAuth(false);
-    }
-  };
-
-  const checkUserAuth = async () => {
-    try {
-      // Now check if the user is authenticated
       setIsLoadingAuth(true);
+      setAuthError(null);
+
+      await db.auth.loginViaEmailPassword(email, password);
+      const userProfile = await db.users.getMyProfile();
+
+      if (expectedRole && userProfile.role !== expectedRole) {
+        await db.auth.logout();
+        throw new Error(
+          expectedRole === 'child'
+            ? 'That account is a parent account. Please use Parent Login.'
+            : 'That account is a child account. Please use Kid Login.'
+        );
+      }
+
       const currentUser = await db.auth.me();
       setUser(currentUser);
-      setIsAuthenticated(Boolean(currentUser));
-      setIsLoadingAuth(false);
+      setProfile(userProfile);
+      setRole(userProfile.role);
+      setIsAuthenticated(true);
       setAuthChecked(true);
+      setIsLoadingAuth(false);
+
+      return { success: true, role: userProfile.role };
     } catch (error) {
-      console.error('User auth check failed:', error);
-      setIsLoadingAuth(false);
-      setIsAuthenticated(false);
-      setAuthChecked(true);
-      
-      // If user auth fails, it might be an expired token
-      if (error.status === 401 || error.status === 403) {
-        setAuthError({
-          type: 'auth_required',
-          message: 'Authentication required'
-        });
-      }
-    }
-  };
-
-  const login = async (email, password) => {
-    try {
-      setIsLoadingAuth(true);
-      setAuthError(null);
-
-      const authResult = await db.auth.loginViaEmailPassword(email, password);
-      const currentUser = authResult?.user || null;
-
-      setUser(currentUser);
-      setIsAuthenticated(Boolean(currentUser));
+      clearAuthState({ setUser, setProfile, setRole, setIsAuthenticated });
       setAuthChecked(true);
       setIsLoadingAuth(false);
-
-      return { success: true, user: currentUser };
-    } catch (error) {
-      setUser(null);
-      setIsAuthenticated(false);
-      setIsLoadingAuth(false);
-      setAuthChecked(true);
       throw error;
     }
   };
 
-  const logout = (shouldRedirect = true) => {
-    setUser(null);
-    setIsAuthenticated(false);
-    
-    if (shouldRedirect) {
-      // Use the SDK's logout method which handles token cleanup and redirect
-      db.auth.logout(window.location.href);
-    } else {
-      // Just remove the token without redirect
-      db.auth.logout();
+  const loginChild = async (username, password) => {
+    const syntheticEmail = db.auth.childEmailFromUsername(username);
+    return login(syntheticEmail, password, 'child');
+  };
+
+  const loginParent = async (email, password) => {
+    return login(email, password, 'parent');
+  };
+
+  const signupParent = async (email, password, displayName = '') => {
+    setIsLoadingAuth(true);
+    setAuthError(null);
+    try {
+      await db.auth.registerParent({ email, password, displayName });
+      const currentUser = await db.auth.me();
+      const userProfile = await db.users.getMyProfile();
+      setUser(currentUser);
+      setProfile(userProfile);
+      setRole(userProfile.role);
+      setIsAuthenticated(true);
+      setAuthChecked(true);
+      setIsLoadingAuth(false);
+      return { success: true };
+    } catch (error) {
+      clearAuthState({ setUser, setProfile, setRole, setIsAuthenticated });
+      setAuthChecked(true);
+      setIsLoadingAuth(false);
+      throw error;
+    }
+  };
+
+  const refreshProfile = async () => {
+    if (!isAuthenticated) return null;
+    const userProfile = await db.users.getMyProfile();
+    setProfile(userProfile);
+    setRole(userProfile.role);
+    return userProfile;
+  };
+
+  const logout = async (shouldRedirect = true) => {
+    await db.auth.logout();
+    clearAuthState({ setUser, setProfile, setRole, setIsAuthenticated });
+    setAuthChecked(true);
+
+    if (shouldRedirect && typeof window !== 'undefined') {
+      window.location.assign('/login');
     }
   };
 
   const navigateToLogin = () => {
-    // Use the SDK's redirectToLogin method
-    db.auth.redirectToLogin(window.location.href);
+    if (typeof window !== 'undefined') {
+      window.location.assign('/login');
+    }
   };
 
+  const checkAppState = async () => checkUserAuth();
+
   return (
-    <AuthContext.Provider value={{ 
-      user, 
-      isAuthenticated, 
-      isLoadingAuth,
-      isLoadingPublicSettings,
-      authError,
-      appPublicSettings,
-      authChecked,
-      login,
-      logout,
-      navigateToLogin,
-      checkUserAuth,
-      checkAppState
-    }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        profile,
+        role,
+        isAuthenticated,
+        isLoadingAuth,
+        isLoadingPublicSettings,
+        authError,
+        appPublicSettings,
+        setAppPublicSettings,
+        authChecked,
+        login,
+        loginChild,
+        loginParent,
+        signupParent,
+        logout,
+        navigateToLogin,
+        checkUserAuth,
+        checkAppState,
+        refreshProfile,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

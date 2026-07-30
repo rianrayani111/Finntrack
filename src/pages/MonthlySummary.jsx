@@ -53,7 +53,7 @@ export default function MonthlySummary() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="text-3xl font-extrabold text-slate-800">Monthly Summary</h1>
-          <p className="text-muted-foreground font-semibold">A single month of earning & spending at a glance.</p>
+          <p className="text-muted-foreground font-semibold">A single month of deposits and withdrawals at a glance.</p>
         </div>
         <div className="flex items-center gap-2 bg-white rounded-2xl border-2 border-border px-2 py-1 shadow-sm">
           <button
@@ -92,10 +92,9 @@ export default function MonthlySummary() {
                   <th className="text-left font-bold px-4 py-4 sticky top-0 z-10">Month</th>
                   <th className="text-right font-bold px-4 py-4">Assets</th>
                   <th className="text-right font-bold px-4 py-4">Liabilities</th>
-                  <th className="text-right font-bold px-4 py-4">Needs</th>
-                  <th className="text-right font-bold px-4 py-4">Wants</th>
-                  <th className="text-right font-bold px-4 py-4">Other</th>
-                  <th className="text-right font-bold px-4 py-4">Money Earned</th>
+                  <th className="text-right font-bold px-4 py-4">Necessity</th>
+                  <th className="text-right font-bold px-4 py-4">Want</th>
+                  <th className="text-right font-bold px-4 py-4">Money Added</th>
                   <th className="text-right font-bold px-4 py-4">Net Profit / Loss</th>
                 </tr>
               </thead>
@@ -103,19 +102,16 @@ export default function MonthlySummary() {
                 <tr className={summary.hasData ? "bg-white" : "bg-sky-50/50 text-muted-foreground"}>
                   <td className="px-4 py-3 font-bold text-slate-700">{summary.name}</td>
                   <td className={`px-4 py-3 text-right ${summary.hasData ? "text-red-500 font-bold" : ""}`}>
-                    {summary.hasData ? formatCurrency(summary.assets) : "—"}
+                    {summary.hasData ? formatCurrency(summary.asset) : "—"}
                   </td>
                   <td className={`px-4 py-3 text-right ${summary.hasData ? "text-red-500 font-bold" : ""}`}>
-                    {summary.hasData ? formatCurrency(summary.liabilities) : "—"}
+                    {summary.hasData ? formatCurrency(summary.liability) : "—"}
                   </td>
                   <td className={`px-4 py-3 text-right ${summary.hasData ? "text-red-500 font-bold" : ""}`}>
-                    {summary.hasData ? formatCurrency(summary.needs) : "—"}
+                    {summary.hasData ? formatCurrency(summary.necessity) : "—"}
                   </td>
                   <td className={`px-4 py-3 text-right ${summary.hasData ? "text-red-500 font-bold" : ""}`}>
-                    {summary.hasData ? formatCurrency(summary.wants) : "—"}
-                  </td>
-                  <td className={`px-4 py-3 text-right ${summary.hasData ? "text-red-500 font-bold" : ""}`}>
-                    {summary.hasData ? formatCurrency(summary.other) : "—"}
+                    {summary.hasData ? formatCurrency(summary.want) : "—"}
                   </td>
                   <td className={`px-4 py-3 text-right ${summary.hasData ? "text-emerald-600 font-bold" : ""}`}>
                     {summary.hasData ? formatCurrency(summary.earned) : "—"}
@@ -166,7 +162,7 @@ export default function MonthlySummary() {
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="finn-card">
-          <p className="text-sm font-bold text-muted-foreground">Total Earned ({monthLabel})</p>
+          <p className="text-sm font-bold text-muted-foreground">Total Added ({monthLabel})</p>
           <p className="text-2xl font-extrabold text-emerald-600 mt-1">
             {formatCurrency(summary.earned)}
           </p>
@@ -174,7 +170,7 @@ export default function MonthlySummary() {
         <div className="finn-card">
           <p className="text-sm font-bold text-muted-foreground">Total Spent ({monthLabel})</p>
           <p className="text-2xl font-extrabold text-red-500 mt-1">
-            {formatCurrency(summary.needs + summary.wants + summary.assets + summary.liabilities + summary.other)}
+            {formatCurrency(summary.necessity + summary.want + summary.asset + summary.liability)}
           </p>
         </div>
         <div className="finn-card">

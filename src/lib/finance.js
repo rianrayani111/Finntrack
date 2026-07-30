@@ -1,7 +1,7 @@
 // Shared financial calculation helpers for FinnTrack
 
-export const CATEGORIES = ["needs", "wants", "assets", "liabilities", "other"];
-export const TRANSACTION_TYPES = ["spending", "earning"];
+export const CATEGORIES = ["necessity", "want", "asset", "liability"];
+export const TRANSACTION_TYPES = ["withdrawal", "deposit"];
 
 export const MONTH_NAMES = [
   "January", "February", "March", "April", "May", "June",
@@ -9,20 +9,28 @@ export const MONTH_NAMES = [
 ];
 
 export const CATEGORY_COLORS = {
-  needs: "#f97316",
-  wants: "#facc15",
-  assets: "#0ea5e9",
-  liabilities: "#ef4444",
-  other: "#a78bfa",
+  necessity: "#f97316",
+  want: "#facc15",
+  asset: "#0ea5e9",
+  liability: "#ef4444",
 };
 
 export const CATEGORY_LABELS = {
-  needs: "Needs",
-  wants: "Wants",
-  assets: "Assets",
-  liabilities: "Liabilities",
-  other: "Other",
+  necessity: "Necessity",
+  want: "Want",
+  asset: "Asset",
+  liability: "Liability",
+  null: "Deposit",
 };
+
+const getType = (transaction) => {
+  if (transaction.type) return transaction.type;
+  if (transaction.transaction_type === 'earning') return 'deposit';
+  if (transaction.transaction_type === 'spending') return 'withdrawal';
+  return '';
+};
+
+const getReason = (transaction) => transaction.reason || transaction.description || '';
 
 export function formatCurrency(value) {
   const num = Number(value || 0);
@@ -40,13 +48,13 @@ export function isSameMonth(dateStr, year, month) {
 
 export function totalEarnings(transactions) {
   return transactions
-    .filter((t) => t.transaction_type === "earning")
+    .filter((t) => getType(t) === "deposit")
     .reduce((sum, t) => sum + Number(t.amount || 0), 0);
 }
 
 export function totalSpending(transactions) {
   return transactions
-    .filter((t) => t.transaction_type === "spending")
+    .filter((t) => getType(t) === "withdrawal")
     .reduce((sum, t) => sum + Number(t.amount || 0), 0);
 }
 
@@ -56,45 +64,45 @@ export function currentBalance(transactions) {
 
 export function earningsForMonth(transactions, year, month) {
   return transactions
-    .filter((t) => t.transaction_type === "earning" && isSameMonth(t.date, year, month))
+    .filter((t) => getType(t) === "deposit" && isSameMonth(t.date, year, month))
     .reduce((sum, t) => sum + Number(t.amount || 0), 0);
 }
 
 export function spendingForMonth(transactions, year, month) {
   return transactions
-    .filter((t) => t.transaction_type === "spending" && isSameMonth(t.date, year, month))
+    .filter((t) => getType(t) === "withdrawal" && isSameMonth(t.date, year, month))
     .reduce((sum, t) => sum + Number(t.amount || 0), 0);
 }
 
 export function spendingByCategory(transactions, category) {
   return transactions
-    .filter((t) => t.transaction_type === "spending" && t.category === category)
+    .filter((t) => getType(t) === "withdrawal" && t.category === category)
     .reduce((sum, t) => sum + Number(t.amount || 0), 0);
 }
 
 export function needsVsWantsData(transactions) {
   return [
-    { name: "Needs", value: spendingByCategory(transactions, "needs"), color: CATEGORY_COLORS.needs },
-    { name: "Wants", value: spendingByCategory(transactions, "wants"), color: CATEGORY_COLORS.wants },
+    { name: "Necessity", value: spendingByCategory(transactions, "necessity"), color: CATEGORY_COLORS.necessity },
+    { name: "Want", value: spendingByCategory(transactions, "want"), color: CATEGORY_COLORS.want },
   ].filter((d) => d.value > 0);
 }
 
 export function assetsVsLiabilitiesData(transactions) {
   return [
-    { name: "Assets", value: spendingByCategory(transactions, "assets"), color: CATEGORY_COLORS.assets },
-    { name: "Liabilities", value: spendingByCategory(transactions, "liabilities"), color: CATEGORY_COLORS.liabilities },
+    { name: "Asset", value: spendingByCategory(transactions, "asset"), color: CATEGORY_COLORS.asset },
+    { name: "Liability", value: spendingByCategory(transactions, "liability"), color: CATEGORY_COLORS.liability },
   ].filter((d) => d.value > 0);
 }
 
 export function buildMonthlySummary(transactions, year, month) {
   const monthTxns = transactions.filter((t) => isSameMonth(t.date, year, month));
   const earned = monthTxns
-    .filter((t) => t.transaction_type === "earning")
+    .filter((t) => getType(t) === "deposit")
     .reduce((sum, t) => sum + Number(t.amount || 0), 0);
   const catTotals = {};
   CATEGORIES.forEach((c) => {
     catTotals[c] = monthTxns
-      .filter((t) => t.transaction_type === "spending" && t.category === c)
+      .filter((t) => getType(t) === "withdrawal" && t.category === c)
       .reduce((sum, t) => sum + Number(t.amount || 0), 0);
   });
   const totalSpending = Object.values(catTotals).reduce((a, b) => a + b, 0);
@@ -119,12 +127,12 @@ export function buildMonthToDateSummary(transactions, year, month) {
   });
 
   const earned = monthTxns
-    .filter((t) => t.transaction_type === "earning")
+    .filter((t) => getType(t) === "deposit")
     .reduce((sum, t) => sum + Number(t.amount || 0), 0);
   const catTotals = {};
   CATEGORIES.forEach((c) => {
     catTotals[c] = monthTxns
-      .filter((t) => t.transaction_type === "spending" && t.category === c)
+      .filter((t) => getType(t) === "withdrawal" && t.category === c)
       .reduce((sum, t) => sum + Number(t.amount || 0), 0);
   });
   const totalSpending = Object.values(catTotals).reduce((a, b) => a + b, 0);
@@ -142,12 +150,12 @@ export function buildAnnualSummary(transactions, year) {
   return MONTH_NAMES.map((name, month) => {
     const monthTxns = transactions.filter((t) => isSameMonth(t.date, year, month));
     const earned = monthTxns
-      .filter((t) => t.transaction_type === "earning")
+      .filter((t) => getType(t) === "deposit")
       .reduce((sum, t) => sum + Number(t.amount || 0), 0);
     const catTotals = {};
     CATEGORIES.forEach((c) => {
       catTotals[c] = monthTxns
-        .filter((t) => t.transaction_type === "spending" && t.category === c)
+        .filter((t) => getType(t) === "withdrawal" && t.category === c)
         .reduce((sum, t) => sum + Number(t.amount || 0), 0);
     });
     const totalSpending = Object.values(catTotals).reduce((a, b) => a + b, 0);
@@ -158,4 +166,12 @@ export function buildAnnualSummary(transactions, year) {
 
 export function sortByDateDesc(transactions) {
   return [...transactions].sort((a, b) => new Date(b.date) - new Date(a.date));
+}
+
+export function transactionReason(transaction) {
+  return getReason(transaction);
+}
+
+export function transactionType(transaction) {
+  return getType(transaction);
 }
