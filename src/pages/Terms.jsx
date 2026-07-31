@@ -8,7 +8,7 @@ export default function Terms() {
   return (
     <div className="min-h-screen bg-sky-50">
       <div className="max-w-3xl mx-auto px-4 py-8">
-        <Link to="/register">
+        <Link to="/login">
           <Button variant="ghost" className="mb-4 font-bold text-sky-600">
             ← Back to sign up
           </Button>
@@ -18,7 +18,7 @@ export default function Terms() {
             <ReactMarkdown>{legalPack}</ReactMarkdown>
           </article>
         </div>
-        <Link to="/register">
+        <Link to="/login">
           <Button variant="ghost" className="mt-4 font-bold text-sky-600">
             ← Back to sign up
           </Button>
