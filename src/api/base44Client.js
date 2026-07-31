@@ -1,3 +1,5 @@
+import { createClient } from '@base44/sdk';
+
 const storage = typeof window !== 'undefined' ? window.localStorage : null;
 
 const KEYS = {
@@ -8,12 +10,47 @@ const KEYS = {
   transactions: 'finntrack_transactions',
   goals: 'finntrack_goals',
   alerts: 'finntrack_alerts',
+  pendingSignups: 'finntrack_pending_signups',
 };
 
 const CHILD_EMAIL_DOMAIN = 'child.finntrack.local';
+const OTP_TTL_MS = 60 * 60 * 1000; // Verification codes are valid for 1 hour.
+const BASE44_APP_ID = import.meta.env?.VITE_BASE44_APP_ID;
 
 const createId = () => `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 const nowIso = () => new Date().toISOString();
+const createOtpCode = () => String(Math.floor(100000 + Math.random() * 900000));
+
+// A minimal, standalone Base44 client used only to send verification emails through
+// the real backend's SendEmail integration. Kept separate from globalThis.__B44_DB__
+// (the app's data/auth backend) since this fallback's custom parent/child auth model
+// has no equivalent on the real SDK.
+let cachedEmailClient;
+const getEmailClient = () => {
+  if (!BASE44_APP_ID) return null;
+  if (!cachedEmailClient) {
+    cachedEmailClient = createClient({ appId: BASE44_APP_ID });
+  }
+  return cachedEmailClient;
+};
+
+const sendOtpEmail = async ({ to, otpCode }) => {
+  const client = getEmailClient();
+  if (!client) {
+    console.info(
+      `[FinnTrack] VITE_BASE44_APP_ID is not configured, so no real email was sent. ` +
+        `Verification code for ${to}: ${otpCode} (valid for 1 hour)`
+    );
+    return { delivered: false, previewCode: otpCode };
+  }
+
+  await client.integrations.Core.SendEmail({
+    to,
+    subject: 'Your FinnTrack verification code',
+    body: `Your FinnTrack verification code is ${otpCode}. It expires in 1 hour. If you didn't request this, you can safely ignore this email.`,
+  });
+  return { delivered: true };
+};
 
 const readJson = (key, fallbackValue) => {
   if (!storage) return fallbackValue;
@@ -48,6 +85,8 @@ const readGoals = () => readJson(KEYS.goals, []);
 const writeGoals = (value) => writeJson(KEYS.goals, value);
 const readAlerts = () => readJson(KEYS.alerts, []);
 const writeAlerts = (value) => writeJson(KEYS.alerts, value);
+const readPendingSignups = () => readJson(KEYS.pendingSignups, {});
+const writePendingSignups = (value) => writeJson(KEYS.pendingSignups, value);
 
 const getCurrentUser = () => {
   const authState = readAuthState();
@@ -143,30 +182,90 @@ const createFallbackDb = () => {
         throw new Error('An account with this email already exists.');
       }
 
+      const otpCode = createOtpCode();
+      const pendingSignups = readPendingSignups();
+      pendingSignups[normalizedEmail] = {
+        email: normalizedEmail,
+        password: normalizedPassword,
+        displayName: String(displayName || normalizedEmail.split('@')[0] || 'Parent').trim(),
+        otpCode,
+        otpExpiresAt: Date.now() + OTP_TTL_MS,
+        createdAt: nowIso(),
+      };
+      writePendingSignups(pendingSignups);
+
+      const emailResult = await sendOtpEmail({ to: normalizedEmail, otpCode });
+      return { pendingVerification: true, email: normalizedEmail, ...emailResult };
+    },
+
+    register: async ({ email, password }) => {
+      return auth.registerParent({ email, password, displayName: '' });
+    },
+
+    verifyOtp: async ({ email, otpCode }) => {
+      const normalizedEmail = normalizeEmail(email);
+      const pendingSignups = readPendingSignups();
+      const pendingSignup = pendingSignups[normalizedEmail];
+
+      if (!pendingSignup) {
+        throw new Error('No pending signup found for this email. Please sign up again.');
+      }
+      if (Date.now() > pendingSignup.otpExpiresAt) {
+        delete pendingSignups[normalizedEmail];
+        writePendingSignups(pendingSignups);
+        throw new Error('This code has expired. Please request a new one.');
+      }
+      if (String(otpCode || '').trim() !== pendingSignup.otpCode) {
+        throw new Error('Incorrect verification code.');
+      }
+
+      const accounts = readAuthAccounts();
+      if (accounts.some((item) => item.email === normalizedEmail)) {
+        throw new Error('An account with this email already exists.');
+      }
+
       const uid = createId();
       const users = readUsers();
       const userDoc = {
         uid,
         role: 'parent',
-        displayName: String(displayName || normalizedEmail.split('@')[0] || 'Parent').trim(),
+        displayName: pendingSignup.displayName,
         email: normalizedEmail,
         username: null,
         parentId: null,
         createdAt: nowIso(),
       };
 
-      accounts.push({ uid, email: normalizedEmail, password: normalizedPassword });
+      accounts.push({ uid, email: normalizedEmail, password: pendingSignup.password });
       users.push(userDoc);
       writeAuthAccounts(accounts);
       writeUsers(users);
+
+      delete pendingSignups[normalizedEmail];
+      writePendingSignups(pendingSignups);
 
       const authState = { uid, token: `local-${createId()}` };
       writeAuthState(authState);
       return { access_token: authState.token, user: toSdkUser(userDoc) };
     },
 
-    register: async ({ email, password }) => {
-      return auth.registerParent({ email, password, displayName: '' });
+    resendOtp: async (email) => {
+      const normalizedEmail = normalizeEmail(email);
+      const pendingSignups = readPendingSignups();
+      const pendingSignup = pendingSignups[normalizedEmail];
+
+      if (!pendingSignup) {
+        throw new Error('No pending signup found for this email. Please sign up again.');
+      }
+
+      const otpCode = createOtpCode();
+      pendingSignup.otpCode = otpCode;
+      pendingSignup.otpExpiresAt = Date.now() + OTP_TTL_MS;
+      pendingSignups[normalizedEmail] = pendingSignup;
+      writePendingSignups(pendingSignups);
+
+      const emailResult = await sendOtpEmail({ to: normalizedEmail, otpCode });
+      return { pendingVerification: true, email: normalizedEmail, ...emailResult };
     },
 
     createChildWithSecondaryApp: async ({ displayName, username, password }) => {

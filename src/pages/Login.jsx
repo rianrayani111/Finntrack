@@ -9,11 +9,13 @@ import { Label } from "@/components/ui/label";
 import { Mail, Lock, Loader2, LogIn, User, X } from "lucide-react";
 import FinnAuthLayout from "@/components/FinnAuthLayout";
 import { Checkbox } from "@/components/ui/checkbox";
+import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 
 const VIEW = {
   CHILD_LOGIN: 'child_login',
   PARENT_LOGIN: 'parent_login',
   PARENT_SIGNUP: 'parent_signup',
+  PARENT_SIGNUP_OTP: 'parent_signup_otp',
   CHILD_SIGNUP_BLOCKED: 'child_signup_blocked',
 };
 
@@ -31,9 +33,14 @@ export default function Login() {
   const [signupConfirmPassword, setSignupConfirmPassword] = useState("");
   const [acceptedTerms, setAcceptedTerms] = useState(false);
 
+  const [otpCode, setOtpCode] = useState("");
+  const [otpPreviewCode, setOtpPreviewCode] = useState(null);
+  const [resendLoading, setResendLoading] = useState(false);
+  const [notice, setNotice] = useState(null);
+
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
-  const { loginChild, loginParent, signupParent } = useAuth();
+  const { loginChild, loginParent, signupParent, verifyParentSignup, resendParentOtp } = useAuth();
 
   const moveToChildLogin = () => {
     setView(VIEW.CHILD_LOGIN);
@@ -88,12 +95,52 @@ export default function Login() {
     setError(null);
     setLoading(true);
     try {
-      await signupParent(signupEmail, signupPassword);
-      window.location.assign('/parent');
+      const result = await signupParent(signupEmail, signupPassword);
+      setOtpCode("");
+      setOtpPreviewCode(result?.previewCode || null);
+      setNotice(
+        result?.delivered
+          ? { id: Date.now(), message: `We sent a 6-digit code to ${signupEmail}. It expires in 1 hour.` }
+          : null
+      );
+      setView(VIEW.PARENT_SIGNUP_OTP);
     } catch (err) {
       setError({ id: Date.now(), message: err?.message || 'Could not create parent account.' });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleVerifyParentOtp = async (e) => {
+    e.preventDefault();
+    setError(null);
+    setLoading(true);
+    try {
+      await verifyParentSignup(signupEmail, otpCode);
+      window.location.assign('/parent');
+    } catch (err) {
+      setError({ id: Date.now(), message: err?.message || 'Invalid verification code.' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResendParentOtp = async () => {
+    setError(null);
+    setResendLoading(true);
+    try {
+      const result = await resendParentOtp(signupEmail);
+      setOtpPreviewCode(result?.previewCode || null);
+      setNotice({
+        id: Date.now(),
+        message: result?.delivered
+          ? `We sent a new code to ${signupEmail}. It expires in 1 hour.`
+          : 'A new code was generated.',
+      });
+    } catch (err) {
+      setError({ id: Date.now(), message: err?.message || 'Failed to resend code.' });
+    } finally {
+      setResendLoading(false);
     }
   };
 
@@ -443,6 +490,112 @@ export default function Login() {
             <button
               type="button"
               onClick={moveToChildLogin}
+              className="text-slate-500 hover:text-sky-600 hover:underline"
+            >
+              Back
+            </button>
+          </div>
+        </>
+      )}
+
+      {view === VIEW.PARENT_SIGNUP_OTP && (
+        <>
+          <h2 className="text-2xl font-extrabold text-slate-800 text-center mb-1">Verify your email</h2>
+          <p className="text-sm text-muted-foreground font-semibold text-center mb-2">
+            We sent a code to {signupEmail}
+          </p>
+          <p className="text-xs text-muted-foreground text-center mb-5">
+            Enter the 6-digit code. It expires in 1 hour.
+          </p>
+
+          {error && (
+            <div
+              key={error.id}
+              role="alert"
+              className="mb-4 p-3 rounded-2xl border border-red-300 bg-red-50 text-red-600 text-sm font-bold flex items-start justify-between gap-3"
+            >
+              <span className="flex-1">{error.message}</span>
+              <button
+                type="button"
+                onClick={dismissError}
+                className="text-red-500 hover:text-red-700 transition-colors"
+                aria-label="Dismiss error"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+
+          {notice && (
+            <div className="mb-4 p-3 rounded-2xl border border-sky-200 bg-sky-50 text-sky-700 text-sm font-bold text-center">
+              {notice.message}
+            </div>
+          )}
+
+          {otpPreviewCode && (
+            <div className="mb-4 p-3 rounded-2xl border border-amber-300 bg-amber-50 text-amber-700 text-xs font-bold text-center">
+              Local preview only (VITE_BASE44_APP_ID not configured — no real email was sent).
+              <br />
+              Your code: {otpPreviewCode}
+            </div>
+          )}
+
+          <form onSubmit={handleVerifyParentOtp} className="space-y-6">
+            <div className="flex justify-center">
+              <InputOTP
+                maxLength={6}
+                value={otpCode}
+                onChange={setOtpCode}
+                autoFocus
+                autoComplete="one-time-code"
+              >
+                <InputOTPGroup>
+                  <InputOTPSlot index={0} />
+                  <InputOTPSlot index={1} />
+                  <InputOTPSlot index={2} />
+                  <InputOTPSlot index={3} />
+                  <InputOTPSlot index={4} />
+                  <InputOTPSlot index={5} />
+                </InputOTPGroup>
+              </InputOTP>
+            </div>
+
+            <Button
+              type="submit"
+              className="w-full h-12 rounded-2xl bg-sky-500 hover:bg-sky-600 text-white font-bold text-base"
+              disabled={loading || otpCode.length < 6}
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Verifying...
+                </>
+              ) : (
+                'Verify and create account'
+              )}
+            </Button>
+          </form>
+
+          <p className="text-center text-sm text-muted-foreground mt-4 font-semibold">
+            Didn't receive the code?{" "}
+            <button
+              type="button"
+              onClick={handleResendParentOtp}
+              disabled={resendLoading}
+              className="text-sky-600 font-bold hover:underline disabled:opacity-50"
+            >
+              {resendLoading ? 'Resending...' : 'Resend'}
+            </button>
+          </p>
+
+          <div className="mt-4 text-center text-sm font-semibold">
+            <button
+              type="button"
+              onClick={() => {
+                setView(VIEW.PARENT_SIGNUP);
+                setError(null);
+                setNotice(null);
+              }}
               className="text-slate-500 hover:text-sky-600 hover:underline"
             >
               Back

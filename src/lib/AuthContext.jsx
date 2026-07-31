@@ -100,10 +100,15 @@ export const AuthProvider = ({ children }) => {
   };
 
   const signupParent = async (email, password, displayName = '') => {
+    setAuthError(null);
+    return db.auth.registerParent({ email, password, displayName });
+  };
+
+  const verifyParentSignup = async (email, otpCode) => {
     setIsLoadingAuth(true);
     setAuthError(null);
     try {
-      await db.auth.registerParent({ email, password, displayName });
+      await db.auth.verifyOtp({ email, otpCode });
       const currentUser = await db.auth.me();
       const userProfile = await db.users.getMyProfile();
       setUser(currentUser);
@@ -119,6 +124,11 @@ export const AuthProvider = ({ children }) => {
       setIsLoadingAuth(false);
       throw error;
     }
+  };
+
+  const resendParentOtp = async (email) => {
+    setAuthError(null);
+    return db.auth.resendOtp(email);
   };
 
   const refreshProfile = async () => {
@@ -164,6 +174,8 @@ export const AuthProvider = ({ children }) => {
         loginChild,
         loginParent,
         signupParent,
+        verifyParentSignup,
+        resendParentOtp,
         logout,
         navigateToLogin,
         checkUserAuth,
