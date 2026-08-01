@@ -1,6 +1,6 @@
 import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
 
-import { db } from '@/api/base44Client';
+import { db, supabase } from '@/api/db';
 
 const AuthContext = createContext();
 
@@ -54,6 +54,19 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     checkUserAuth();
+  }, [checkUserAuth]);
+
+  // Passive cross-tab sync only: logging in/out in another tab (or a token
+  // refresh) re-runs checkUserAuth here. Action functions below still set
+  // state synchronously themselves so Login.jsx can navigate immediately
+  // after they resolve, without waiting on this listener to fire.
+  useEffect(() => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(() => {
+      checkUserAuth();
+    });
+    return () => subscription.unsubscribe();
   }, [checkUserAuth]);
 
   const login = async (email, password, expectedRole) => {

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { db } from '@/api/base44Client';
+import { db } from '@/api/db';
 
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import FinnLogo from "@/components/FinnLogo";

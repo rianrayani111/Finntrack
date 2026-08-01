@@ -1,6 +1,6 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
-import '@/api/base44Client'
+import '@/api/db'
 import App from '@/App.jsx'
 import '@/index.css'
 

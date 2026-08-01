@@ -21,6 +21,7 @@ import {
   LogOut,
   Menu,
   X,
+  Settings,
 } from 'lucide-react';
 import FinnLogo from '@/components/FinnLogo';
 import { useAuth } from '@/lib/AuthContext';
@@ -31,6 +32,7 @@ const NAV_ITEMS = [
   { label: 'Goals', path: '/parent/goals', icon: Target },
   { label: 'Alerts', path: '/parent/alerts', icon: Bell },
   { label: 'Add a Child', path: '/parent/add-child', icon: UserPlus },
+  { label: 'Settings', path: '/parent/settings', icon: Settings },
 ];
 
 export default function ParentLayout() {

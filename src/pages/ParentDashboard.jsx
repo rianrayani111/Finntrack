@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { db } from '@/api/base44Client';
+import { db } from '@/api/db';
 import { formatCurrency, currentBalance, transactionType } from '@/lib/finance';
 import { Bell, PlusCircle, UserPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';

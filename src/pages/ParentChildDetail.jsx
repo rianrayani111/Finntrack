@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { db } from '@/api/base44Client';
+import { db } from '@/api/db';
 import {
   buildMonthlySummary,
   CATEGORY_LABELS,

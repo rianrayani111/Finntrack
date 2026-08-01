@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { db } from '@/api/base44Client';
+import { db } from '@/api/db';
 
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";

@@ -37,6 +37,7 @@ export default function Login() {
   const [otpPreviewCode, setOtpPreviewCode] = useState(null);
   const [resendLoading, setResendLoading] = useState(false);
   const [notice, setNotice] = useState(null);
+  const [showChildForgotHelp, setShowChildForgotHelp] = useState(false);
 
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -215,6 +216,20 @@ export default function Login() {
                   required
                 />
               </div>
+              <div className="text-right">
+                <button
+                  type="button"
+                  onClick={() => setShowChildForgotHelp((v) => !v)}
+                  className="text-xs font-bold text-sky-600 hover:underline"
+                >
+                  Forgot password?
+                </button>
+              </div>
+              {showChildForgotHelp && (
+                <div className="p-3 rounded-2xl border border-sky-200 bg-sky-50 text-sky-700 text-sm font-bold text-center">
+                  Ask your parent to log in to their account to change your password.
+                </div>
+              )}
             </div>
 
             <button
@@ -325,6 +340,11 @@ export default function Login() {
                   className="pl-10 h-12 rounded-2xl border-2"
                   required
                 />
+              </div>
+              <div className="text-right">
+                <Link to="/forgot-password" className="text-xs font-bold text-sky-600 hover:underline">
+                  Forgot password?
+                </Link>
               </div>
             </div>
 

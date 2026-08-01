@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { db } from '@/api/base44Client';
+import { db } from '@/api/db';
 import { Progress } from '@/components/ui/progress';
 import { formatCurrency } from '@/lib/finance';
 import { calculateGoalProgress, GOAL_TYPE_LABELS, timelineLabel } from '@/lib/goals';

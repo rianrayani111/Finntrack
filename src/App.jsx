@@ -25,6 +25,7 @@ import ParentAddChild from '@/pages/ParentAddChild';
 import ParentChildDetail from '@/pages/ParentChildDetail';
 import ParentGoals from '@/pages/ParentGoals';
 import ParentEditTransaction from '@/pages/ParentEditTransaction';
+import ParentSettings from '@/pages/ParentSettings';
 import RoleGuard from '@/components/RoleGuard';
 import Home from '@/pages/Home';
 
@@ -106,6 +107,7 @@ const AuthenticatedApp = () => {
             <Route path="transactions/:transactionId/edit" element={<ParentEditTransaction />} />
             <Route path="add-child" element={<ParentAddChild />} />
             <Route path="children/:childId" element={<ParentChildDetail />} />
+            <Route path="settings" element={<ParentSettings />} />
           </Route>
         </Route>
       </Route>
