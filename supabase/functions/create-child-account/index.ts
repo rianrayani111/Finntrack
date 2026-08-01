@@ -1,0 +1,61 @@
+import { corsHeaders, HttpError, requireParent, supabaseAdmin } from '../_shared/auth.ts';
+
+const CHILD_EMAIL_DOMAIN = 'child.finntrack.local';
+
+Deno.serve(async (req: Request) => {
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders });
+  }
+
+  try {
+    const { uid: parentUid } = await requireParent(req);
+
+    const body = await req.json().catch(() => ({}));
+    const displayName = String(body.displayName || '').trim();
+    const username = String(body.username || '').trim().toLowerCase();
+    const password = String(body.password || '');
+
+    if (!username) throw new HttpError(400, 'Username is required.');
+    if (!displayName) throw new HttpError(400, 'Child display name is required.');
+    if (!password) throw new HttpError(400, 'Password is required.');
+
+    const syntheticEmail = `${username}@${CHILD_EMAIL_DOMAIN}`;
+
+    const { data, error } = await supabaseAdmin.auth.admin.createUser({
+      email: syntheticEmail,
+      password,
+      email_confirm: true,
+      user_metadata: {
+        role: 'child',
+        display_name: displayName,
+        username,
+        parent_id: parentUid,
+      },
+    });
+
+    if (error) {
+      const message = /already been registered|duplicate key|unique constraint/i.test(error.message)
+        ? 'That username is already taken. Please choose another one.'
+        : error.message;
+      const status = /already been registered|duplicate key|unique constraint/i.test(error.message) ? 409 : 400;
+      throw new HttpError(status, message);
+    }
+
+    return new Response(
+      JSON.stringify({
+        childUid: data.user!.id,
+        username,
+        syntheticEmail,
+        parentStayedLoggedIn: true,
+      }),
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  } catch (err) {
+    const status = err instanceof HttpError ? err.status : 500;
+    const message = err instanceof Error ? err.message : 'Unexpected error.';
+    return new Response(JSON.stringify({ error: message }), {
+      status,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+});
