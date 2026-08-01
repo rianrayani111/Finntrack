@@ -5,6 +5,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from '@/components/ui/use-toast';
 
+const USERNAME_PATTERN = /^[a-z0-9_]{3,20}$/;
+
 export default function ParentAddChild() {
   const [displayName, setDisplayName] = useState('');
   const [username, setUsername] = useState('');
@@ -15,20 +17,23 @@ export default function ParentAddChild() {
   const [saving, setSaving] = useState(false);
   const [createdCreds, setCreatedCreds] = useState(null);
 
+  const usernameFormatValid = USERNAME_PATTERN.test(username.trim().toLowerCase());
+
   const canSubmit = useMemo(() => {
     return (
       displayName.trim() &&
       username.trim() &&
+      usernameFormatValid &&
       password &&
       confirmPassword &&
       password === confirmPassword &&
       usernameAvailable === true
     );
-  }, [displayName, username, password, confirmPassword, usernameAvailable]);
+  }, [displayName, username, usernameFormatValid, password, confirmPassword, usernameAvailable]);
 
   useEffect(() => {
     const cleanUsername = username.trim().toLowerCase();
-    if (!cleanUsername) {
+    if (!cleanUsername || !USERNAME_PATTERN.test(cleanUsername)) {
       setUsernameAvailable(null);
       return;
     }
@@ -124,7 +129,9 @@ export default function ParentAddChild() {
               required
             />
             <p className="text-xs font-semibold text-muted-foreground">
-              {checkingUsername
+              {username.trim() && !usernameFormatValid
+                ? 'Usernames can only contain lowercase letters, numbers, and underscores (3-20 characters). Do not use an email address.'
+                : checkingUsername
                 ? 'Checking username...'
                 : usernameAvailable === null
                 ? 'Type a username to check availability.'

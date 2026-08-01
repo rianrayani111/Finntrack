@@ -1,6 +1,7 @@
 import { corsHeaders, HttpError, requireParent, supabaseAdmin } from '../_shared/auth.ts';
 
 const CHILD_EMAIL_DOMAIN = 'child.finntrack.local';
+const USERNAME_PATTERN = /^[a-z0-9_]{3,20}$/;
 
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
@@ -16,6 +17,12 @@ Deno.serve(async (req: Request) => {
     const password = String(body.password || '');
 
     if (!username) throw new HttpError(400, 'Username is required.');
+    if (!USERNAME_PATTERN.test(username)) {
+      throw new HttpError(
+        400,
+        'Username can only contain lowercase letters, numbers, and underscores (3-20 characters).'
+      );
+    }
     if (!displayName) throw new HttpError(400, 'Child display name is required.');
     if (!password) throw new HttpError(400, 'Password is required.');
 
