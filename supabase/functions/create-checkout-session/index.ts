@@ -49,6 +49,7 @@ Deno.serve(async (req: Request) => {
       subscription_data: { metadata: { parent_id: parentUid } },
       success_url: `${origin}/parent?checkout=success`,
       cancel_url: `${origin}/parent?checkout=cancelled`,
+      allow_promotion_codes: true,
     });
 
     return new Response(JSON.stringify({ url: session.url }), {
