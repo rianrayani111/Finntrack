@@ -14,4 +14,4 @@ Disallow: /parent
 Disallow: /parent/*
 Disallow: /reset-password
 
-Sitemap: https://finntrack.net/sitemap.xml
+Sitemap: https://www.finntrack.net/sitemap.xml
