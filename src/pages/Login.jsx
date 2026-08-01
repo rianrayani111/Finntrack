@@ -519,8 +519,8 @@ export default function Login() {
 
           <div className="p-5 rounded-2xl border-2 border-sky-400 bg-white text-center">
             <p className="text-sm font-semibold text-slate-700">
-              A verification code has been sent to your email. Please click on the link to verify. You may
-              then close this tab.
+              A verification link has been sent to your email. Please verify before logging in. You may
+              now close this tab.
             </p>
           </div>
 
