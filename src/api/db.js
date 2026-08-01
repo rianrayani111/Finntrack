@@ -495,6 +495,29 @@ const goalApi = {
   },
 };
 
+const billingApi = {
+  getStatus: async () => {
+    const { data, error } = await supabase.rpc('get_family_subscription_status');
+    if (error) throw new Error(error.message);
+    const row = (data || [])[0];
+    return row ? { status: row.status, currentPeriodEnd: row.current_period_end } : { status: null, currentPeriodEnd: null };
+  },
+
+  createCheckoutSession: async (interval) => {
+    const { data, error } = await supabase.functions.invoke('create-checkout-session', {
+      body: { interval },
+    });
+    if (error) throw new Error(await readFunctionErrorMessage(error));
+    return data;
+  },
+
+  createPortalSession: async () => {
+    const { data, error } = await supabase.functions.invoke('create-portal-session');
+    if (error) throw new Error(await readFunctionErrorMessage(error));
+    return data;
+  },
+};
+
 const alertsApi = {
   list: async () => {
     const { data, error } = await supabase
@@ -523,6 +546,7 @@ const alertsApi = {
 export const db = {
   auth,
   users,
+  billing: billingApi,
   alerts: alertsApi,
   entities: {
     Transaction: transactionApi,

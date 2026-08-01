@@ -9,6 +9,8 @@ const clearAuthState = (setters) => {
   setters.setProfile(null);
   setters.setRole(null);
   setters.setIsAuthenticated(false);
+  setters.setSubscriptionStatus(null);
+  setters.setSubscriptionPeriodEnd(null);
 };
 
 export const AuthProvider = ({ children }) => {
@@ -21,6 +23,19 @@ export const AuthProvider = ({ children }) => {
   const [authError, setAuthError] = useState(null);
   const [authChecked, setAuthChecked] = useState(false);
   const [appPublicSettings, setAppPublicSettings] = useState(null);
+  const [subscriptionStatus, setSubscriptionStatus] = useState(null);
+  const [subscriptionPeriodEnd, setSubscriptionPeriodEnd] = useState(null);
+
+  const loadSubscriptionStatus = async () => {
+    try {
+      const { status, currentPeriodEnd } = await db.billing.getStatus();
+      setSubscriptionStatus(status);
+      setSubscriptionPeriodEnd(currentPeriodEnd);
+    } catch {
+      setSubscriptionStatus(null);
+      setSubscriptionPeriodEnd(null);
+    }
+  };
 
   const checkUserAuth = useCallback(async () => {
     try {
@@ -29,7 +44,7 @@ export const AuthProvider = ({ children }) => {
       const currentUser = await db.auth.me();
 
       if (!currentUser) {
-        clearAuthState({ setUser, setProfile, setRole, setIsAuthenticated });
+        clearAuthState({ setUser, setProfile, setRole, setIsAuthenticated, setSubscriptionStatus, setSubscriptionPeriodEnd });
         setAuthChecked(true);
         setIsLoadingAuth(false);
         return null;
@@ -42,9 +57,10 @@ export const AuthProvider = ({ children }) => {
       setIsAuthenticated(true);
       setAuthChecked(true);
       setIsLoadingAuth(false);
+      await loadSubscriptionStatus();
       return userProfile;
     } catch (error) {
-      clearAuthState({ setUser, setProfile, setRole, setIsAuthenticated });
+      clearAuthState({ setUser, setProfile, setRole, setIsAuthenticated, setSubscriptionStatus, setSubscriptionPeriodEnd });
       setAuthError({ type: 'auth_required', message: error.message || 'Authentication required.' });
       setAuthChecked(true);
       setIsLoadingAuth(false);
@@ -71,7 +87,6 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password, expectedRole) => {
     try {
-      setIsLoadingAuth(true);
       setAuthError(null);
 
       await db.auth.loginViaEmailPassword(email, password);
@@ -92,13 +107,12 @@ export const AuthProvider = ({ children }) => {
       setRole(userProfile.role);
       setIsAuthenticated(true);
       setAuthChecked(true);
-      setIsLoadingAuth(false);
+      await loadSubscriptionStatus();
 
       return { success: true, role: userProfile.role };
     } catch (error) {
-      clearAuthState({ setUser, setProfile, setRole, setIsAuthenticated });
+      clearAuthState({ setUser, setProfile, setRole, setIsAuthenticated, setSubscriptionStatus, setSubscriptionPeriodEnd });
       setAuthChecked(true);
-      setIsLoadingAuth(false);
       throw error;
     }
   };
@@ -118,7 +132,6 @@ export const AuthProvider = ({ children }) => {
   };
 
   const verifyParentSignup = async (email, otpCode) => {
-    setIsLoadingAuth(true);
     setAuthError(null);
     try {
       await db.auth.verifyOtp({ email, otpCode });
@@ -129,12 +142,11 @@ export const AuthProvider = ({ children }) => {
       setRole(userProfile.role);
       setIsAuthenticated(true);
       setAuthChecked(true);
-      setIsLoadingAuth(false);
+      await loadSubscriptionStatus();
       return { success: true };
     } catch (error) {
-      clearAuthState({ setUser, setProfile, setRole, setIsAuthenticated });
+      clearAuthState({ setUser, setProfile, setRole, setIsAuthenticated, setSubscriptionStatus, setSubscriptionPeriodEnd });
       setAuthChecked(true);
-      setIsLoadingAuth(false);
       throw error;
     }
   };
@@ -154,7 +166,7 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async (shouldRedirect = true) => {
     await db.auth.logout();
-    clearAuthState({ setUser, setProfile, setRole, setIsAuthenticated });
+    clearAuthState({ setUser, setProfile, setRole, setIsAuthenticated, setSubscriptionStatus, setSubscriptionPeriodEnd });
     setAuthChecked(true);
 
     if (shouldRedirect && typeof window !== 'undefined') {
@@ -194,6 +206,10 @@ export const AuthProvider = ({ children }) => {
         checkUserAuth,
         checkAppState,
         refreshProfile,
+        subscriptionStatus,
+        subscriptionPeriodEnd,
+        hasActiveAccess: subscriptionStatus === 'active',
+        refreshSubscription: loadSubscriptionStatus,
       }}
     >
       {children}

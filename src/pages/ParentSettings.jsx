@@ -55,7 +55,7 @@ function PasswordInput({ id, value, onChange, show, onToggleShow, autoComplete }
 }
 
 export default function ParentSettings() {
-  const { user, profile, refreshProfile, logout } = useAuth();
+  const { user, profile, refreshProfile, logout, subscriptionStatus, subscriptionPeriodEnd } = useAuth();
 
   const [displayName, setDisplayName] = useState("");
   const [savingProfile, setSavingProfile] = useState(false);
@@ -75,7 +75,8 @@ export default function ParentSettings() {
   const [showChildPassword, setShowChildPassword] = useState(false);
   const [savingChildPassword, setSavingChildPassword] = useState(false);
 
-  const [cancelling, setCancelling] = useState(false);
+  const [deletingAccount, setDeletingAccount] = useState(false);
+  const [managingBilling, setManagingBilling] = useState(false);
 
   useEffect(() => {
     setDisplayName(profile?.displayName || "");
@@ -154,14 +155,25 @@ export default function ParentSettings() {
     }
   };
 
-  const handleCancelSubscription = async () => {
-    setCancelling(true);
+  const handleDeleteAccount = async () => {
+    setDeletingAccount(true);
     try {
       await db.auth.deleteOwnAccount();
       await logout(true);
     } catch (err) {
-      toast({ title: "Could not cancel subscription", description: err.message, variant: "destructive" });
-      setCancelling(false);
+      toast({ title: "Could not delete account", description: err.message, variant: "destructive" });
+      setDeletingAccount(false);
+    }
+  };
+
+  const handleManageBilling = async () => {
+    setManagingBilling(true);
+    try {
+      const { url } = await db.billing.createPortalSession();
+      window.location.href = url;
+    } catch (err) {
+      toast({ title: "Could not open billing portal", description: err.message, variant: "destructive" });
+      setManagingBilling(false);
     }
   };
 
@@ -313,6 +325,26 @@ export default function ParentSettings() {
         )}
       </div>
 
+      <div className="finn-card space-y-3">
+        <h2 className="text-lg font-extrabold text-slate-800">Billing</h2>
+        {subscriptionStatus && (
+          <p className="text-sm text-muted-foreground font-semibold">
+            Status: <span className="capitalize">{subscriptionStatus}</span>
+            {subscriptionPeriodEnd &&
+              ` · renews ${new Date(subscriptionPeriodEnd).toLocaleDateString()}`}
+          </p>
+        )}
+        <Button
+          type="button"
+          variant="outline"
+          className="w-full h-14 rounded-2xl font-extrabold text-base"
+          onClick={handleManageBilling}
+          disabled={managingBilling}
+        >
+          {managingBilling ? "Redirecting..." : "Manage Billing"}
+        </Button>
+      </div>
+
       <div className="finn-card">
         <AlertDialog>
           <AlertDialogTrigger asChild>
@@ -320,24 +352,26 @@ export default function ParentSettings() {
               type="button"
               className="w-full h-14 rounded-2xl bg-red-600 hover:bg-red-700 text-white font-extrabold text-base"
             >
-              Cancel Subscription
+              Delete Account
             </Button>
           </AlertDialogTrigger>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Confirm the cancellation of your subscription.</AlertDialogTitle>
+              <AlertDialogTitle>Delete your account?</AlertDialogTitle>
               <AlertDialogDescription>
-                NOTE: This will also permanently delete your account. This action cannot be undone.
+                This permanently deletes your account and every child account in your family, along with all
+                transactions, goals, and alerts. This does not cancel your subscription — do that first from
+                Manage Billing if you don't want to keep being charged. This action cannot be undone.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>Cancel</AlertDialogCancel>
               <AlertDialogAction
                 className="bg-red-600 text-white hover:bg-red-700"
-                onClick={handleCancelSubscription}
-                disabled={cancelling}
+                onClick={handleDeleteAccount}
+                disabled={deletingAccount}
               >
-                {cancelling ? "Cancelling..." : "Confirm cancellation"}
+                {deletingAccount ? "Deleting..." : "Confirm deletion"}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>

@@ -27,12 +27,13 @@ import ParentGoals from '@/pages/ParentGoals';
 import ParentEditTransaction from '@/pages/ParentEditTransaction';
 import ParentSettings from '@/pages/ParentSettings';
 import RoleGuard from '@/components/RoleGuard';
+import SubscriptionGate from '@/components/SubscriptionGate';
 import Home from '@/pages/Home';
 
 const RoleHome = () => {
-  const { role, isLoadingAuth, authChecked } = useAuth();
+  const { role, authChecked } = useAuth();
 
-  if (!authChecked || isLoadingAuth) {
+  if (!authChecked) {
     return (
       <div className="fixed inset-0 flex items-center justify-center">
         <div className="w-8 h-8 border-4 border-slate-200 border-t-slate-800 rounded-full animate-spin"></div>
@@ -48,9 +49,9 @@ const RoleHome = () => {
 };
 
 const RootRoute = () => {
-  const { isAuthenticated, isLoadingAuth, authChecked, role } = useAuth();
+  const { isAuthenticated, authChecked, role } = useAuth();
 
-  if (!authChecked || isLoadingAuth) {
+  if (!authChecked) {
     return <Home />;
   }
 
@@ -65,10 +66,15 @@ const RootRoute = () => {
 };
 
 const AuthenticatedApp = () => {
-  const { isLoadingAuth, isLoadingPublicSettings } = useAuth();
+  const { authChecked, isLoadingPublicSettings } = useAuth();
 
-  // Show loading spinner while checking app public settings or auth
-  if (isLoadingPublicSettings || isLoadingAuth) {
+  // Gate on authChecked (a one-way latch, set once the first auth check
+  // completes) rather than isLoadingAuth, which flips true again for any
+  // background re-check (tab refocus, token refresh) — that would otherwise
+  // unmount the ENTIRE routed app, including whatever's on /login (e.g. a
+  // parent mid-way through the multi-step signup/OTP flow), on every such
+  // recheck.
+  if (isLoadingPublicSettings || !authChecked) {
     return (
       <div className="fixed inset-0 flex items-center justify-center">
         <div className="w-8 h-8 border-4 border-slate-200 border-t-slate-800 rounded-full animate-spin"></div>
@@ -87,27 +93,29 @@ const AuthenticatedApp = () => {
       <Route element={<ProtectedRoute unauthenticatedElement={<Navigate to="/login" replace />} />}>
         <Route path="/app" element={<RoleHome />} />
 
-        <Route element={<RoleGuard allowedRoles={["child"]} />}>
-          <Route element={<AppLayout />}>
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/add" element={<AddTransaction />} />
-            <Route path="/summary" element={<MonthlySummary />} />
-            <Route path="/history" element={<TransactionHistory />} />
-            <Route path="/goals" element={<Goals />} />
-            <Route path="/profile" element={<Profile />} />
+        <Route element={<SubscriptionGate />}>
+          <Route element={<RoleGuard allowedRoles={["child"]} />}>
+            <Route element={<AppLayout />}>
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/add" element={<AddTransaction />} />
+              <Route path="/summary" element={<MonthlySummary />} />
+              <Route path="/history" element={<TransactionHistory />} />
+              <Route path="/goals" element={<Goals />} />
+              <Route path="/profile" element={<Profile />} />
+            </Route>
           </Route>
-        </Route>
 
-        <Route element={<RoleGuard allowedRoles={["parent"]} />}>
-          <Route path="/parent" element={<ParentLayout />}>
-            <Route index element={<ParentDashboard />} />
-            <Route path="add-money" element={<ParentAddMoney />} />
-            <Route path="goals" element={<ParentGoals />} />
-            <Route path="alerts" element={<ParentAlerts />} />
-            <Route path="transactions/:transactionId/edit" element={<ParentEditTransaction />} />
-            <Route path="add-child" element={<ParentAddChild />} />
-            <Route path="children/:childId" element={<ParentChildDetail />} />
-            <Route path="settings" element={<ParentSettings />} />
+          <Route element={<RoleGuard allowedRoles={["parent"]} />}>
+            <Route path="/parent" element={<ParentLayout />}>
+              <Route index element={<ParentDashboard />} />
+              <Route path="add-money" element={<ParentAddMoney />} />
+              <Route path="goals" element={<ParentGoals />} />
+              <Route path="alerts" element={<ParentAlerts />} />
+              <Route path="transactions/:transactionId/edit" element={<ParentEditTransaction />} />
+              <Route path="add-child" element={<ParentAddChild />} />
+              <Route path="children/:childId" element={<ParentChildDetail />} />
+              <Route path="settings" element={<ParentSettings />} />
+            </Route>
           </Route>
         </Route>
       </Route>

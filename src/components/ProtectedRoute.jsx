@@ -17,7 +17,11 @@ export default function ProtectedRoute({ fallback = <DefaultFallback />, unauthe
     }
   }, [authChecked, isLoadingAuth, checkUserAuth]);
 
-  if (isLoadingAuth || !authChecked) {
+  // Gate on authChecked (a one-way latch) rather than isLoadingAuth, which can
+  // flip true again for background re-checks (tab refocus, token refresh) and
+  // would otherwise unmount the current route — and any in-progress local
+  // state, e.g. a multi-step signup form — every time that happens.
+  if (!authChecked) {
     return fallback;
   }
 

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 
 import { useAuth } from '@/lib/AuthContext';
@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Mail, Lock, Loader2, LogIn, User, X } from "lucide-react";
 import FinnAuthLayout from "@/components/FinnAuthLayout";
 import { Checkbox } from "@/components/ui/checkbox";
+import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 
 const VIEW = {
   CHILD_LOGIN: 'child_login',
@@ -32,13 +33,22 @@ export default function Login() {
   const [signupConfirmPassword, setSignupConfirmPassword] = useState("");
   const [acceptedTerms, setAcceptedTerms] = useState(false);
 
+  const [otpCode, setOtpCode] = useState("");
+  const [resendCooldown, setResendCooldown] = useState(0);
+
   const [resendLoading, setResendLoading] = useState(false);
   const [notice, setNotice] = useState(null);
   const [showChildForgotHelp, setShowChildForgotHelp] = useState(false);
 
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
-  const { loginChild, loginParent, signupParent, resendParentOtp } = useAuth();
+  const { loginChild, loginParent, signupParent, verifyParentSignup, resendParentOtp } = useAuth();
+
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const timer = setInterval(() => setResendCooldown((s) => Math.max(s - 1, 0)), 1000);
+    return () => clearInterval(timer);
+  }, [resendCooldown]);
 
   const moveToChildLogin = () => {
     setView(VIEW.CHILD_LOGIN);
@@ -95,6 +105,8 @@ export default function Login() {
     try {
       await signupParent(signupEmail, signupPassword);
       setNotice(null);
+      setOtpCode("");
+      setResendCooldown(60);
       setView(VIEW.PARENT_SIGNUP_OTP);
     } catch (err) {
       setError({ id: Date.now(), message: err?.message || 'Could not create parent account.' });
@@ -103,12 +115,29 @@ export default function Login() {
     }
   };
 
+  const handleVerifyParentOtp = async (e) => {
+    e.preventDefault();
+    setError(null);
+    setLoading(true);
+    try {
+      await verifyParentSignup(signupEmail, otpCode);
+      window.location.assign('/parent');
+    } catch {
+      setOtpCode("");
+      setError({ id: Date.now(), message: 'Incorrect pin has been entered, please try again.' });
+      setLoading(false);
+    }
+  };
+
   const handleResendParentOtp = async () => {
+    if (resendCooldown > 0) return;
     setError(null);
     setResendLoading(true);
     try {
       await resendParentOtp(signupEmail);
-      setNotice({ id: Date.now(), message: `We sent a new verification email to ${signupEmail}.` });
+      setOtpCode("");
+      setResendCooldown(60);
+      setNotice({ id: Date.now(), message: `We sent a new code to ${signupEmail}.` });
     } catch (err) {
       setError({ id: Date.now(), message: err?.message || 'Failed to resend the verification email.' });
     } finally {
@@ -517,22 +546,56 @@ export default function Login() {
             </div>
           )}
 
-          <div className="p-5 rounded-2xl border-2 border-sky-400 bg-white text-center">
-            <p className="text-sm font-semibold text-slate-700">
-              A verification link has been sent to your email. Please verify before logging in. You may
-              now close this tab.
-            </p>
-          </div>
+          <p className="text-sm text-muted-foreground font-semibold text-center mb-5">
+            We sent an 8-digit code to <span className="text-slate-700">{signupEmail}</span>. Enter it below to
+            finish creating your account.
+          </p>
+
+          <form onSubmit={handleVerifyParentOtp} className="space-y-4">
+            <div className="flex justify-center">
+              <InputOTP maxLength={8} value={otpCode} onChange={setOtpCode} autoFocus>
+                <InputOTPGroup>
+                  <InputOTPSlot index={0} />
+                  <InputOTPSlot index={1} />
+                  <InputOTPSlot index={2} />
+                  <InputOTPSlot index={3} />
+                  <InputOTPSlot index={4} />
+                  <InputOTPSlot index={5} />
+                  <InputOTPSlot index={6} />
+                  <InputOTPSlot index={7} />
+                </InputOTPGroup>
+              </InputOTP>
+            </div>
+
+            <Button
+              type="submit"
+              className="w-full h-12 rounded-2xl bg-sky-500 hover:bg-sky-600 text-white font-bold text-base"
+              disabled={loading || otpCode.length !== 8}
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Verifying...
+                </>
+              ) : (
+                'Verify and continue'
+              )}
+            </Button>
+          </form>
 
           <p className="text-center text-sm text-muted-foreground mt-4 font-semibold">
             Didn't receive the email?{" "}
             <button
               type="button"
               onClick={handleResendParentOtp}
-              disabled={resendLoading}
-              className="text-sky-600 font-bold hover:underline disabled:opacity-50"
+              disabled={resendLoading || resendCooldown > 0}
+              className="text-sky-600 font-bold hover:underline disabled:opacity-50 disabled:no-underline"
             >
-              {resendLoading ? 'Resending...' : 'Resend'}
+              {resendLoading
+                ? 'Resending...'
+                : resendCooldown > 0
+                ? `Resend in ${resendCooldown}s`
+                : 'Resend'}
             </button>
           </p>
 

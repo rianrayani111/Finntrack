@@ -1,4 +1,5 @@
 import { corsHeaders, HttpError, requireParent, supabaseAdmin } from '../_shared/auth.ts';
+import { syncSubscriptionQuantity } from '../_shared/billing.ts';
 
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
@@ -32,6 +33,8 @@ Deno.serve(async (req: Request) => {
     if (deleteError) {
       throw new HttpError(500, deleteError.message);
     }
+
+    await syncSubscriptionQuantity(parentUid);
 
     return new Response(JSON.stringify({ success: true }), {
       status: 200,

@@ -1,4 +1,5 @@
 import { corsHeaders, HttpError, requireParent, supabaseAdmin } from '../_shared/auth.ts';
+import { hasActiveSubscription, syncSubscriptionQuantity } from '../_shared/billing.ts';
 
 const CHILD_EMAIL_DOMAIN = 'child.finntrack.local';
 const USERNAME_PATTERN = /^[a-z0-9_]{3,20}$/;
@@ -10,6 +11,10 @@ Deno.serve(async (req: Request) => {
 
   try {
     const { uid: parentUid } = await requireParent(req);
+
+    if (!(await hasActiveSubscription(parentUid))) {
+      throw new HttpError(402, 'An active subscription is required before adding a child.');
+    }
 
     const body = await req.json().catch(() => ({}));
     const displayName = String(body.displayName || '').trim();
@@ -47,6 +52,8 @@ Deno.serve(async (req: Request) => {
       const status = /already been registered|duplicate key|unique constraint/i.test(error.message) ? 409 : 400;
       throw new HttpError(status, message);
     }
+
+    await syncSubscriptionQuantity(parentUid);
 
     return new Response(
       JSON.stringify({

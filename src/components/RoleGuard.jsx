@@ -9,9 +9,12 @@ const RoleLoading = () => (
 );
 
 export default function RoleGuard({ allowedRoles = [] }) {
-  const { authChecked, isLoadingAuth, role, isAuthenticated } = useAuth();
+  const { authChecked, role, isAuthenticated } = useAuth();
 
-  if (!authChecked || isLoadingAuth) {
+  // authChecked is a one-way latch; isLoadingAuth alone can flip true again for
+  // background re-checks (tab refocus, token refresh) and would otherwise
+  // unmount whatever's on screen every time that happens.
+  if (!authChecked) {
     return <RoleLoading />;
   }
 

@@ -1,0 +1,5 @@
+# Stripe calls this endpoint directly with no Supabase user JWT — it
+# authenticates via the Stripe-Signature header instead (verified inside the
+# function itself), so JWT verification must be disabled for this function only.
+[functions.stripe-webhook]
+verify_jwt = false
