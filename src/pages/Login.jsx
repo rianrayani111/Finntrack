@@ -9,7 +9,6 @@ import { Label } from "@/components/ui/label";
 import { Mail, Lock, Loader2, LogIn, User, X } from "lucide-react";
 import FinnAuthLayout from "@/components/FinnAuthLayout";
 import { Checkbox } from "@/components/ui/checkbox";
-import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 
 const VIEW = {
   CHILD_LOGIN: 'child_login',
@@ -33,15 +32,13 @@ export default function Login() {
   const [signupConfirmPassword, setSignupConfirmPassword] = useState("");
   const [acceptedTerms, setAcceptedTerms] = useState(false);
 
-  const [otpCode, setOtpCode] = useState("");
-  const [otpPreviewCode, setOtpPreviewCode] = useState(null);
   const [resendLoading, setResendLoading] = useState(false);
   const [notice, setNotice] = useState(null);
   const [showChildForgotHelp, setShowChildForgotHelp] = useState(false);
 
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
-  const { loginChild, loginParent, signupParent, verifyParentSignup, resendParentOtp } = useAuth();
+  const { loginChild, loginParent, signupParent, resendParentOtp } = useAuth();
 
   const moveToChildLogin = () => {
     setView(VIEW.CHILD_LOGIN);
@@ -96,31 +93,11 @@ export default function Login() {
     setError(null);
     setLoading(true);
     try {
-      const result = await signupParent(signupEmail, signupPassword);
-      setOtpCode("");
-      setOtpPreviewCode(result?.previewCode || null);
-      setNotice(
-        result?.delivered
-          ? { id: Date.now(), message: `We sent a 6-digit code to ${signupEmail}. It expires in 1 hour.` }
-          : null
-      );
+      await signupParent(signupEmail, signupPassword);
+      setNotice(null);
       setView(VIEW.PARENT_SIGNUP_OTP);
     } catch (err) {
       setError({ id: Date.now(), message: err?.message || 'Could not create parent account.' });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleVerifyParentOtp = async (e) => {
-    e.preventDefault();
-    setError(null);
-    setLoading(true);
-    try {
-      await verifyParentSignup(signupEmail, otpCode);
-      window.location.assign('/parent');
-    } catch (err) {
-      setError({ id: Date.now(), message: err?.message || 'Invalid verification code.' });
     } finally {
       setLoading(false);
     }
@@ -130,16 +107,10 @@ export default function Login() {
     setError(null);
     setResendLoading(true);
     try {
-      const result = await resendParentOtp(signupEmail);
-      setOtpPreviewCode(result?.previewCode || null);
-      setNotice({
-        id: Date.now(),
-        message: result?.delivered
-          ? `We sent a new code to ${signupEmail}. It expires in 1 hour.`
-          : 'A new code was generated.',
-      });
+      await resendParentOtp(signupEmail);
+      setNotice({ id: Date.now(), message: `We sent a new verification email to ${signupEmail}.` });
     } catch (err) {
-      setError({ id: Date.now(), message: err?.message || 'Failed to resend code.' });
+      setError({ id: Date.now(), message: err?.message || 'Failed to resend the verification email.' });
     } finally {
       setResendLoading(false);
     }
@@ -520,13 +491,7 @@ export default function Login() {
 
       {view === VIEW.PARENT_SIGNUP_OTP && (
         <>
-          <h2 className="text-2xl font-extrabold text-slate-800 text-center mb-1">Verify your email</h2>
-          <p className="text-sm text-muted-foreground font-semibold text-center mb-2">
-            We sent a code to {signupEmail}
-          </p>
-          <p className="text-xs text-muted-foreground text-center mb-5">
-            Enter the 6-digit code. It expires in 1 hour.
-          </p>
+          <h2 className="text-2xl font-extrabold text-slate-800 text-center mb-5">Verify your email</h2>
 
           {error && (
             <div
@@ -552,52 +517,15 @@ export default function Login() {
             </div>
           )}
 
-          {otpPreviewCode && (
-            <div className="mb-4 p-3 rounded-2xl border border-amber-300 bg-amber-50 text-amber-700 text-xs font-bold text-center">
-              Local preview only (VITE_BASE44_APP_ID not configured — no real email was sent).
-              <br />
-              Your code: {otpPreviewCode}
-            </div>
-          )}
-
-          <form onSubmit={handleVerifyParentOtp} className="space-y-6">
-            <div className="flex justify-center">
-              <InputOTP
-                maxLength={6}
-                value={otpCode}
-                onChange={setOtpCode}
-                autoFocus
-                autoComplete="one-time-code"
-              >
-                <InputOTPGroup>
-                  <InputOTPSlot index={0} />
-                  <InputOTPSlot index={1} />
-                  <InputOTPSlot index={2} />
-                  <InputOTPSlot index={3} />
-                  <InputOTPSlot index={4} />
-                  <InputOTPSlot index={5} />
-                </InputOTPGroup>
-              </InputOTP>
-            </div>
-
-            <Button
-              type="submit"
-              className="w-full h-12 rounded-2xl bg-sky-500 hover:bg-sky-600 text-white font-bold text-base"
-              disabled={loading || otpCode.length < 6}
-            >
-              {loading ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Verifying...
-                </>
-              ) : (
-                'Verify and create account'
-              )}
-            </Button>
-          </form>
+          <div className="p-5 rounded-2xl border-2 border-sky-400 bg-white text-center">
+            <p className="text-sm font-semibold text-slate-700">
+              A verification code has been sent to your email. Please click on the link to verify. You may
+              then close this tab.
+            </p>
+          </div>
 
           <p className="text-center text-sm text-muted-foreground mt-4 font-semibold">
-            Didn't receive the code?{" "}
+            Didn't receive the email?{" "}
             <button
               type="button"
               onClick={handleResendParentOtp}
