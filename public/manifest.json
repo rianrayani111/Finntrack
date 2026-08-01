@@ -1,0 +1,16 @@
+{
+  "name": "FinnTrack",
+  "short_name": "FinnTrack",
+  "description": "FinnTrack helps kids track spending and earnings, sort them into needs, wants, assets, and liabilities, and see where their money really goes.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#0f172a",
+  "icons": [
+    {
+      "src": "https://media.db.com/images/public/6a6434d5a7b84aee85fe90e4/e52378c0f_generated_image.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

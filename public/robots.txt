@@ -1,0 +1,17 @@
+User-agent: *
+Allow: /
+Allow: /login
+Allow: /terms
+Allow: /forgot-password
+Disallow: /app
+Disallow: /dashboard
+Disallow: /add
+Disallow: /summary
+Disallow: /history
+Disallow: /goals
+Disallow: /profile
+Disallow: /parent
+Disallow: /parent/*
+Disallow: /reset-password
+
+Sitemap: https://finntrack.net/sitemap.xml
