@@ -41,10 +41,12 @@ export default function ResetPassword() {
     };
   }, []);
 
+  const passwordsMatch = newPassword.length > 0 && newPassword === confirmPassword;
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
-    if (newPassword !== confirmPassword) {
+    if (!passwordsMatch) {
       setError("Passwords do not match");
       return;
     }
@@ -133,7 +135,7 @@ export default function ResetPassword() {
             />
           </div>
         </div>
-        <Button type="submit" className="w-full h-12 font-medium" disabled={loading}>
+        <Button type="submit" className="w-full h-12 font-medium" disabled={loading || !passwordsMatch}>
           {loading ? (
             <>
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
