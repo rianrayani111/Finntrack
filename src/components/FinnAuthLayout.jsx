@@ -1,4 +1,5 @@
 import React from "react";
+import { Link } from "react-router-dom";
 import DolphinMascot from "@/components/DolphinMascot";
 import FinnLogo from "@/components/FinnLogo";
 
@@ -9,6 +10,21 @@ export default function FinnAuthLayout({ children, showMascot = true, mascotMess
       <div className="absolute inset-0 bg-gradient-to-br from-sky-400 via-sky-500 to-cyan-600" />
       <div className="absolute top-0 left-0 w-72 h-72 bg-white/10 rounded-full -translate-x-1/3 -translate-y-1/3 blur-2xl" />
       <div className="absolute bottom-0 right-0 w-96 h-96 bg-cyan-200/20 rounded-full translate-x-1/3 translate-y-1/3 blur-2xl" />
+
+      <div className="absolute top-4 right-4 z-10 flex items-center gap-2 sm:top-6 sm:right-6">
+        <Link
+          to="/"
+          className="inline-flex h-10 items-center justify-center rounded-2xl border-2 border-white/40 bg-white/10 px-4 text-sm font-extrabold text-white backdrop-blur-md transition-all duration-200 hover:-translate-y-0.5 hover:bg-white/20"
+        >
+          Home
+        </Link>
+        <Link
+          to="/faq"
+          className="inline-flex h-10 items-center justify-center rounded-2xl border-2 border-white/40 bg-white/10 px-4 text-sm font-extrabold text-white backdrop-blur-md transition-all duration-200 hover:-translate-y-0.5 hover:bg-white/20"
+        >
+          FAQs
+        </Link>
+      </div>
 
       <div className="relative w-full max-w-md">
         <div className="text-center mb-6">
