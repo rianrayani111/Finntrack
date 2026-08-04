@@ -12,8 +12,20 @@ Deno.serve(async (req: Request) => {
   try {
     const { uid: parentUid } = await requireParent(req);
 
-    if (!(await hasActiveSubscription(parentUid))) {
-      throw new HttpError(402, 'An active subscription is required before adding a child.');
+    // A parent's first child is free. Every child after that requires an
+    // active subscription (checked before creating the auth user so we don't
+    // have to unwind a half-created account on a 402).
+    const { count: existingChildCount } = await supabaseAdmin
+      .from('profiles')
+      .select('id', { count: 'exact', head: true })
+      .eq('parent_id', parentUid);
+
+    const isAdditionalChild = (existingChildCount || 0) >= 1;
+    if (isAdditionalChild && !(await hasActiveSubscription(parentUid))) {
+      throw new HttpError(
+        402,
+        'Your first child is free. Adding another child requires an active subscription — $3.99/month or $19.99/year.'
+      );
     }
 
     const body = await req.json().catch(() => ({}));

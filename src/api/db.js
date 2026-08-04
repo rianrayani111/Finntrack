@@ -579,7 +579,9 @@ const billingApi = {
     const { data, error } = await supabase.rpc('get_family_subscription_status');
     if (error) throw new Error(error.message);
     const row = (data || [])[0];
-    return row ? { status: row.status, currentPeriodEnd: row.current_period_end } : { status: null, currentPeriodEnd: null };
+    return row
+      ? { status: row.status, currentPeriodEnd: row.current_period_end, childCount: row.child_count ?? 0 }
+      : { status: null, currentPeriodEnd: null, childCount: 0 };
   },
 
   createCheckoutSession: async (interval) => {

@@ -11,6 +11,7 @@ const clearAuthState = (setters) => {
   setters.setIsAuthenticated(false);
   setters.setSubscriptionStatus(null);
   setters.setSubscriptionPeriodEnd(null);
+  setters.setChildCount(null);
 };
 
 export const AuthProvider = ({ children }) => {
@@ -25,15 +26,18 @@ export const AuthProvider = ({ children }) => {
   const [appPublicSettings, setAppPublicSettings] = useState(null);
   const [subscriptionStatus, setSubscriptionStatus] = useState(null);
   const [subscriptionPeriodEnd, setSubscriptionPeriodEnd] = useState(null);
+  const [childCount, setChildCount] = useState(null);
 
   const loadSubscriptionStatus = async () => {
     try {
-      const { status, currentPeriodEnd } = await db.billing.getStatus();
+      const { status, currentPeriodEnd, childCount: count } = await db.billing.getStatus();
       setSubscriptionStatus(status);
       setSubscriptionPeriodEnd(currentPeriodEnd);
+      setChildCount(count);
     } catch {
       setSubscriptionStatus(null);
       setSubscriptionPeriodEnd(null);
+      setChildCount(null);
     }
   };
 
@@ -44,7 +48,7 @@ export const AuthProvider = ({ children }) => {
       const currentUser = await db.auth.me();
 
       if (!currentUser) {
-        clearAuthState({ setUser, setProfile, setRole, setIsAuthenticated, setSubscriptionStatus, setSubscriptionPeriodEnd });
+        clearAuthState({ setUser, setProfile, setRole, setIsAuthenticated, setSubscriptionStatus, setSubscriptionPeriodEnd, setChildCount });
         setAuthChecked(true);
         setIsLoadingAuth(false);
         return null;
@@ -60,7 +64,7 @@ export const AuthProvider = ({ children }) => {
       await loadSubscriptionStatus();
       return userProfile;
     } catch (error) {
-      clearAuthState({ setUser, setProfile, setRole, setIsAuthenticated, setSubscriptionStatus, setSubscriptionPeriodEnd });
+      clearAuthState({ setUser, setProfile, setRole, setIsAuthenticated, setSubscriptionStatus, setSubscriptionPeriodEnd, setChildCount });
       setAuthError({ type: 'auth_required', message: error.message || 'Authentication required.' });
       setAuthChecked(true);
       setIsLoadingAuth(false);
@@ -111,7 +115,7 @@ export const AuthProvider = ({ children }) => {
 
       return { success: true, role: userProfile.role };
     } catch (error) {
-      clearAuthState({ setUser, setProfile, setRole, setIsAuthenticated, setSubscriptionStatus, setSubscriptionPeriodEnd });
+      clearAuthState({ setUser, setProfile, setRole, setIsAuthenticated, setSubscriptionStatus, setSubscriptionPeriodEnd, setChildCount });
       setAuthChecked(true);
       throw error;
     }
@@ -145,7 +149,7 @@ export const AuthProvider = ({ children }) => {
       await loadSubscriptionStatus();
       return { success: true };
     } catch (error) {
-      clearAuthState({ setUser, setProfile, setRole, setIsAuthenticated, setSubscriptionStatus, setSubscriptionPeriodEnd });
+      clearAuthState({ setUser, setProfile, setRole, setIsAuthenticated, setSubscriptionStatus, setSubscriptionPeriodEnd, setChildCount });
       setAuthChecked(true);
       throw error;
     }
@@ -166,7 +170,7 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async (shouldRedirect = true) => {
     await db.auth.logout();
-    clearAuthState({ setUser, setProfile, setRole, setIsAuthenticated, setSubscriptionStatus, setSubscriptionPeriodEnd });
+    clearAuthState({ setUser, setProfile, setRole, setIsAuthenticated, setSubscriptionStatus, setSubscriptionPeriodEnd, setChildCount });
     setAuthChecked(true);
 
     if (shouldRedirect && typeof window !== 'undefined') {
@@ -208,7 +212,10 @@ export const AuthProvider = ({ children }) => {
         refreshProfile,
         subscriptionStatus,
         subscriptionPeriodEnd,
-        hasActiveAccess: subscriptionStatus === 'active',
+        childCount,
+        // A family's first child is always free; only a 2nd+ child requires
+        // an active subscription for the whole family to keep working.
+        hasActiveAccess: (childCount ?? 0) <= 1 || subscriptionStatus === 'active',
         refreshSubscription: loadSubscriptionStatus,
       }}
     >

@@ -3,3 +3,8 @@
 # function itself), so JWT verification must be disabled for this function only.
 [functions.stripe-webhook]
 verify_jwt = false
+
+# Ops-only endpoint invoked manually (not by the app) — authenticates via the
+# x-backfill-secret header instead of a Supabase user JWT.
+[functions.backfill-subscriptions]
+verify_jwt = false
