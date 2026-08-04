@@ -25,6 +25,15 @@ const rowToProfile = (row) => ({
   createdAt: row.created_at,
   streakCount: row.streak_count,
   lastLoginDate: row.last_login_date,
+  xp: Number(row.xp) || 0,
+  summaryViewsCount: Number(row.summary_views_count) || 0,
+  historyViewsCount: Number(row.history_views_count) || 0,
+  avatar: {
+    skin: row.avatar_skin,
+    hairStyle: row.avatar_hair_style,
+    hairColor: row.avatar_hair_color,
+    face: row.avatar_face,
+  },
 });
 
 const rowToTransaction = (row) => ({
@@ -36,6 +45,7 @@ const rowToTransaction = (row) => ({
   category: row.category,
   reason: row.reason,
   location: row.location,
+  notes: row.notes || '',
   date: row.date,
   time: row.time,
   createdBy: row.created_by,
@@ -292,6 +302,59 @@ const users = {
     if (error) throw new Error(error.message);
     return Number(data) || 0;
   },
+
+  updateAvatar: async ({ skin, hairStyle, hairColor, face }) => {
+    const { error } = await supabase.rpc('update_avatar', {
+      p_skin: skin || '',
+      p_hair_style: hairStyle || '',
+      p_hair_color: hairColor || '',
+      p_face: face || '',
+    });
+    if (error) throw new Error(error.message);
+    return { success: true };
+  },
+
+  // Persists any newly-qualified badges (computed client-side from
+  // transaction history + profile state, see src/lib/gamification.js) and
+  // awards their XP server-side exactly once. Returns the child's new total
+  // XP and which of the submitted keys were actually newly earned.
+  syncBadges: async (badgeKeys) => {
+    const { data, error } = await supabase.rpc('sync_badges', { p_badge_keys: badgeKeys || [] });
+    if (error) throw new Error(error.message);
+    const row = (data || [])[0];
+    return { totalXp: Number(row?.total_xp) || 0, newlyEarned: row?.newly_earned || [] };
+  },
+
+  listMyBadges: async () => {
+    const user = await requireCurrentUser();
+    const { data, error } = await supabase
+      .from('user_badges')
+      .select('badge_key, earned_at')
+      .eq('child_id', user.id);
+    if (error) throw new Error(error.message);
+    return data || [];
+  },
+
+  listBadgesForChild: async (childId) => {
+    const { data, error } = await supabase
+      .from('user_badges')
+      .select('badge_key, earned_at')
+      .eq('child_id', childId);
+    if (error) throw new Error(error.message);
+    return data || [];
+  },
+
+  bumpSummaryViews: async () => {
+    const { data, error } = await supabase.rpc('bump_summary_views');
+    if (error) throw new Error(error.message);
+    return Number(data) || 0;
+  },
+
+  bumpHistoryViews: async () => {
+    const { data, error } = await supabase.rpc('bump_history_views');
+    if (error) throw new Error(error.message);
+    return Number(data) || 0;
+  },
 };
 
 const transactionApi = {
@@ -330,6 +393,7 @@ const transactionApi = {
         category: null,
         reason,
         location: '',
+        notes: String(payload.notes || '').trim(),
         date: String(payload.date || new Date().toISOString().slice(0, 10)),
         time: String(payload.time || new Date().toTimeString().slice(0, 5)),
         created_by: 'parent',
@@ -351,6 +415,7 @@ const transactionApi = {
         category,
         reason,
         location,
+        notes: String(payload.notes || '').trim(),
         date: String(payload.date || new Date().toISOString().slice(0, 10)),
         time: String(payload.time || new Date().toTimeString().slice(0, 5)),
         created_by: 'child',
@@ -396,6 +461,7 @@ const transactionApi = {
       reason,
       category: type === 'deposit' ? null : category,
       location: type === 'deposit' ? '' : location,
+      notes: String(payload.notes || '').trim(),
       updated_at: new Date().toISOString(),
     };
     if (payload.childId) {

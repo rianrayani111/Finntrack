@@ -26,6 +26,7 @@ export default function TransactionHistory() {
     db.entities.Transaction.list("-date", 500)
       .then((items) => setTransactions(items || []))
       .finally(() => setLoading(false));
+    db.users.bumpHistoryViews().catch(() => {});
   }, []);
 
   const filtered = useMemo(() => {
@@ -107,6 +108,7 @@ export default function TransactionHistory() {
                   <div>
                     <p className="font-extrabold text-slate-800">{transactionReason(t)}</p>
                     <p className="text-sm text-muted-foreground font-semibold">{new Date(t.date).toLocaleDateString()} · {CATEGORY_LABELS[String(t.category)] || 'Deposit'} · {t.time}</p>
+                    {t.notes && <p className="text-xs text-muted-foreground font-semibold mt-1">Note: {t.notes}</p>}
                   </div>
                 </div>
                 <div className="flex items-center gap-3">

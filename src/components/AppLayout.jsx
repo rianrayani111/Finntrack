@@ -21,11 +21,13 @@ import {
   History,
   Target,
   UserCircle,
+  Trophy,
   Menu,
   X,
   LogOut,
 } from "lucide-react";
 import FinnLogo from "@/components/FinnLogo";
+import { CelebrationProvider } from "@/lib/celebrations";
 
 const NAV_ITEMS = [
   { label: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
@@ -33,6 +35,7 @@ const NAV_ITEMS = [
   { label: "Monthly Summary", path: "/summary", icon: CalendarRange },
   { label: "Transaction History", path: "/history", icon: History },
   { label: "Goals", path: "/goals", icon: Target },
+  { label: "Achievements", path: "/achievements", icon: Trophy },
   { label: "Profile", path: "/profile", icon: UserCircle },
 ];
 
@@ -50,6 +53,7 @@ export default function AppLayout() {
   };
 
   return (
+    <CelebrationProvider>
     <div className="min-h-screen flex flex-col">
       <div className="flex flex-1">
         <aside className="hidden lg:flex w-72 flex-col border-r border-slate-200 bg-slate-50/80 p-6">
@@ -205,5 +209,6 @@ export default function AppLayout() {
         </div>
       )}
     </div>
+    </CelebrationProvider>
   );
 }

@@ -24,6 +24,7 @@ import {
   transactionType,
   transactionReason,
 } from "@/lib/finance";
+import { useCelebrations } from "@/lib/celebrations";
 
 const now = new Date();
 
@@ -89,6 +90,7 @@ export default function Dashboard() {
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [streak, setStreak] = useState(0);
+  const { celebrateGains } = useCelebrations();
 
   useEffect(() => {
     db.entities.Transaction.list("-date", 500)
@@ -97,9 +99,23 @@ export default function Dashboard() {
   }, []);
 
   useEffect(() => {
+    // Login-streak XP is awarded server-side inside bumpDailyStreak (see
+    // migration 0005). It doesn't return the new XP total, so a level-up
+    // from it alone (no badge involved) is detected by comparing the
+    // profile's XP just before and just after the bump.
     db.users
-      .bumpDailyStreak()
-      .then((count) => setStreak(count))
+      .getMyProfile()
+      .then((before) =>
+        db.users
+          .bumpDailyStreak()
+          .then((count) => {
+            setStreak(count);
+            return db.users.getMyProfile();
+          })
+          .then((after) => {
+            celebrateGains({ prevXp: before.xp, newXp: after.xp, newlyEarnedKeys: [] });
+          })
+      )
       .catch(() => {});
   }, []);
 

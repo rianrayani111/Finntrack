@@ -19,6 +19,7 @@ export default function MonthlySummary() {
     db.entities.Transaction.list("-date", 500)
       .then((items) => setTransactions(items || []))
       .finally(() => setLoading(false));
+    db.users.bumpSummaryViews().catch(() => {});
   }, []);
 
   const summary = buildMonthlySummary(transactions, year, month);

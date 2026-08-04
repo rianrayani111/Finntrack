@@ -5,6 +5,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ArrowLeft, Save, X } from 'lucide-react';
 import FinnLogo from '@/components/FinnLogo';
@@ -20,6 +21,7 @@ export default function ParentEditTransaction() {
   const [time, setTime] = useState('');
   const [reason, setReason] = useState('');
   const [location, setLocation] = useState('');
+  const [notes, setNotes] = useState('');
   const [category, setCategory] = useState('');
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(true);
@@ -40,6 +42,7 @@ export default function ParentEditTransaction() {
         setTime(String(txn.time || ''));
         setReason(String(txn.reason || ''));
         setLocation(String(txn.location || ''));
+        setNotes(String(txn.notes || ''));
         setCategory(String(txn.category || ''));
       })
       .catch((error) => {
@@ -79,6 +82,7 @@ export default function ParentEditTransaction() {
         time,
         reason: reason.trim(),
         location: type === 'withdrawal' ? location.trim() : '',
+        notes: notes.trim(),
         category: type === 'withdrawal' ? category : null,
       });
 
@@ -199,6 +203,20 @@ export default function ParentEditTransaction() {
               className="h-12 text-base rounded-2xl border-2"
             />
             {errors.reason && <p className="text-sm text-red-500 font-semibold">{errors.reason}</p>}
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="notes" className="font-bold text-slate-700">
+              Notes <span className="text-muted-foreground font-semibold">(optional)</span>
+            </Label>
+            <Textarea
+              id="notes"
+              placeholder="Any extra detail worth remembering"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              className="text-base rounded-2xl border-2"
+              rows={3}
+            />
           </div>
 
           {type === 'withdrawal' && (

@@ -16,6 +16,7 @@ import AddTransaction from "@/pages/AddTransaction";
 import MonthlySummary from "@/pages/MonthlySummary";
 import TransactionHistory from "@/pages/TransactionHistory";
 import Goals from '@/pages/Goals';
+import Achievements from '@/pages/Achievements';
 import Profile from "@/pages/Profile";
 import ParentLayout from '@/components/ParentLayout';
 import ParentDashboard from '@/pages/ParentDashboard';
@@ -107,6 +108,7 @@ const AuthenticatedApp = () => {
               <Route path="/summary" element={<MonthlySummary />} />
               <Route path="/history" element={<TransactionHistory />} />
               <Route path="/goals" element={<Goals />} />
+              <Route path="/achievements" element={<Achievements />} />
               <Route path="/profile" element={<Profile />} />
             </Route>
           </Route>

@@ -5,19 +5,24 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ArrowLeft, Save, X } from 'lucide-react';
 import FinnLogo from '@/components/FinnLogo';
 import { toast } from '@/components/ui/use-toast';
+import { syncAchievements } from '@/lib/achievementsSync';
+import { useCelebrations } from '@/lib/celebrations';
 
 export default function AddTransaction() {
   const navigate = useNavigate();
+  const { celebrateGains } = useCelebrations();
 
   const [amount, setAmount] = useState('');
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   const [time, setTime] = useState(new Date().toTimeString().slice(0, 5));
   const [reason, setReason] = useState('');
   const [location, setLocation] = useState('');
+  const [notes, setNotes] = useState('');
   const [category, setCategory] = useState('');
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
@@ -46,10 +51,21 @@ export default function AddTransaction() {
         time,
         reason: reason.trim(),
         location: location.trim(),
+        notes: notes.trim(),
         category,
       });
 
       toast({ title: 'Withdrawal saved.' });
+
+      // Best-effort: recompute badge eligibility and celebrate anything newly
+      // earned. Never blocks navigation — a sync failure here shouldn't stop
+      // the child from seeing their withdrawal was saved.
+      syncAchievements()
+        .then(({ newlyEarned, prevXp, newXp }) => {
+          celebrateGains({ prevXp, newXp, newlyEarnedKeys: newlyEarned });
+        })
+        .catch(() => {});
+
       navigate('/dashboard');
     } catch (error) {
       toast({
@@ -159,6 +175,20 @@ export default function AddTransaction() {
               className="h-12 text-base rounded-2xl border-2"
             />
             {errors.location && <p className="text-sm text-red-500 font-semibold">{errors.location}</p>}
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="notes" className="font-bold text-slate-700">
+              Notes <span className="text-muted-foreground font-semibold">(optional)</span>
+            </Label>
+            <Textarea
+              id="notes"
+              placeholder="Any extra detail worth remembering"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              className="text-base rounded-2xl border-2"
+              rows={3}
+            />
           </div>
 
           <div className="space-y-2">
