@@ -20,7 +20,7 @@ export const FAQ_CATEGORIES = [
       {
         question: "How many children can I add?",
         answer:
-          "As many as you like. One subscription covers every child in your family, at no extra cost per kid.",
+          "As many as you like. Your first child is included in your subscription, and every additional child gets a 50% discount.",
       },
     ],
   },
@@ -75,7 +75,7 @@ export const FAQ_CATEGORIES = [
       {
         question: "How much does FinnTrack cost?",
         answer:
-          "$6.99 per month, or $49.99 per year. One subscription covers every child on your account, so a family with three kids pays the same as a family with one.",
+          "$6.99 per month, or $49.99 per year, for your first child. Every additional child you add gets a 50% discount, so growing families pay less per kid.",
       },
       {
         question: "Can I cancel anytime?",

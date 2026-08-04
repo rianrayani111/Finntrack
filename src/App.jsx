@@ -30,6 +30,8 @@ import RoleGuard from '@/components/RoleGuard';
 import SubscriptionGate from '@/components/SubscriptionGate';
 import Home from '@/pages/Home';
 import FAQ from '@/pages/FAQ';
+import Resources from '@/pages/Resources';
+import ResourceArticle from '@/pages/ResourceArticle';
 
 const RoleHome = () => {
   const { role, authChecked } = useAuth();
@@ -91,6 +93,8 @@ const AuthenticatedApp = () => {
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/terms" element={<Terms />} />
       <Route path="/faq" element={<FAQ />} />
+      <Route path="/resources" element={<Resources />} />
+      <Route path="/resources/:slug" element={<ResourceArticle />} />
 
       <Route element={<ProtectedRoute unauthenticatedElement={<Navigate to="/login" replace />} />}>
         <Route path="/app" element={<RoleHome />} />
