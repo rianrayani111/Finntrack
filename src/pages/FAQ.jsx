@@ -3,8 +3,14 @@ import { Link } from "react-router-dom";
 import FinnLogo from "@/components/FinnLogo";
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
 import { FAQ_CATEGORIES } from "@/content/faq";
+import usePageMeta from "@/hooks/usePageMeta";
 
 export default function FAQ() {
+  usePageMeta(
+    "FAQs",
+    "Answers to common questions about how FinnTrack works, pricing, privacy, and how it compares to other kids' money apps."
+  );
+
   return (
     <div className="home-ocean-page min-h-screen text-slate-900">
       <div className="home-ocean-bg" aria-hidden="true" />

@@ -2,6 +2,7 @@ import React, { useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Bell, Coins, Heart, ShieldCheck, Sparkles, Target } from "lucide-react";
 import FinnLogo from "@/components/FinnLogo";
+import usePageMeta from "@/hooks/usePageMeta";
 
 const STEPS = [
   {
@@ -46,6 +47,12 @@ const VALUE_POINTS = [
 ];
 
 export default function Home() {
+  usePageMeta(
+    null,
+    "FinnTrack helps kids track spending and earnings, sort them into needs, wants, assets, and liabilities, and see where their money really goes.",
+    "/"
+  );
+
   useEffect(() => {
     const nodes = Array.from(document.querySelectorAll('[data-reveal]'));
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;

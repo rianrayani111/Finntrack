@@ -10,6 +10,7 @@ import { Mail, Lock, Loader2, LogIn, User, X } from "lucide-react";
 import FinnAuthLayout from "@/components/FinnAuthLayout";
 import { Checkbox } from "@/components/ui/checkbox";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
+import usePageMeta from "@/hooks/usePageMeta";
 
 const VIEW = {
   CHILD_LOGIN: 'child_login',
@@ -20,6 +21,8 @@ const VIEW = {
 };
 
 export default function Login() {
+  usePageMeta("Log In", "Log in to your FinnTrack parent or kid account.", "/login");
+
   const [view, setView] = useState(VIEW.CHILD_LOGIN);
 
   const [childUsername, setChildUsername] = useState("");
