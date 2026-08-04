@@ -23,6 +23,8 @@ const rowToProfile = (row) => ({
   username: row.username,
   parentId: row.parent_id,
   createdAt: row.created_at,
+  streakCount: row.streak_count,
+  lastLoginDate: row.last_login_date,
 });
 
 const rowToTransaction = (row) => ({
@@ -278,6 +280,17 @@ const users = {
     });
     if (error) throw new Error(await readFunctionErrorMessage(error));
     return data;
+  },
+
+  // Called once per calendar day (idempotent server-side) so a child's
+  // dashboard visit increments their login streak. p_today is the child's
+  // local date, not the server's, so the streak matches what they see.
+  bumpDailyStreak: async () => {
+    const today = new Date();
+    const localDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+    const { data, error } = await supabase.rpc('bump_daily_streak', { p_today: localDate });
+    if (error) throw new Error(error.message);
+    return Number(data) || 0;
   },
 };
 

@@ -50,6 +50,10 @@ Deno.serve(async (req: Request) => {
       success_url: `${origin}/parent?checkout=success`,
       cancel_url: `${origin}/parent?checkout=cancelled`,
       allow_promotion_codes: true,
+      // Skips the card-collection step entirely when the total due (now and for
+      // all future renewals) is $0 — e.g. a forever/100%-off promo code. Any
+      // checkout with a real amount due still collects a card as normal.
+      payment_method_collection: 'if_required',
     });
 
     return new Response(JSON.stringify({ url: session.url }), {

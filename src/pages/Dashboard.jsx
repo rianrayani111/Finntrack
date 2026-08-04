@@ -10,7 +10,7 @@ import {
   Tooltip,
   Legend,
 } from "recharts";
-import { TrendingUp, TrendingDown, PiggyBank, Wallet, PlusCircle } from "lucide-react";
+import { TrendingUp, TrendingDown, PiggyBank, Wallet, PlusCircle, Flame } from "lucide-react";
 import FinnLogo from "@/components/FinnLogo";
 import {
   formatCurrency,
@@ -88,11 +88,19 @@ function PieChartCard({ title, data, emptyText }) {
 export default function Dashboard() {
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [streak, setStreak] = useState(0);
 
   useEffect(() => {
     db.entities.Transaction.list("-date", 500)
       .then((items) => setTransactions(items || []))
       .finally(() => setLoading(false));
+  }, []);
+
+  useEffect(() => {
+    db.users
+      .bumpDailyStreak()
+      .then((count) => setStreak(count))
+      .catch(() => {});
   }, []);
 
   const balance = currentBalance(transactions);
@@ -143,6 +151,15 @@ export default function Dashboard() {
       <div className="bg-gradient-to-br from-sky-500 to-sky-700 rounded-3xl p-6 sm:p-8 text-white shadow-xl relative overflow-hidden">
         <div className="absolute -right-6 -top-6 w-32 h-32 bg-white/10 rounded-full" />
         <div className="absolute right-10 bottom-0 w-20 h-20 bg-white/10 rounded-full" />
+        {streak > 0 && (
+          <div className="absolute top-3 right-3 sm:top-4 sm:right-4 flex flex-col items-center gap-1 bg-yellow-400 text-yellow-900 rounded-2xl px-5 py-4 sm:px-6 sm:py-5 shadow-md">
+            <Flame className="w-9 h-9 sm:w-10 sm:h-10 fill-orange-500 text-orange-500" />
+            <span className="text-3xl sm:text-4xl font-extrabold leading-none">{streak}</span>
+            <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wide leading-none whitespace-nowrap">
+              Daily Streak
+            </span>
+          </div>
+        )}
         <div className="relative">
           <div className="flex items-center gap-2 text-sm font-bold opacity-90">
             <Wallet className="w-4 h-4" />
