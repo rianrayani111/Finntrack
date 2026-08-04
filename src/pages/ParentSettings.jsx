@@ -327,6 +327,9 @@ export default function ParentSettings() {
 
       <div className="finn-card space-y-3">
         <h2 className="text-lg font-extrabold text-slate-800">Billing</h2>
+        <p className="text-sm text-muted-foreground font-semibold">
+          Your first child is always free — you're billed only for additional children.
+        </p>
         {subscriptionStatus && (
           <p className="text-sm text-muted-foreground font-semibold">
             Status: <span className="capitalize">{subscriptionStatus}</span>

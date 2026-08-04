@@ -29,6 +29,7 @@ import ParentEditTransaction from '@/pages/ParentEditTransaction';
 import ParentSettings from '@/pages/ParentSettings';
 import RoleGuard from '@/components/RoleGuard';
 import SubscriptionGate from '@/components/SubscriptionGate';
+import AdditionalChildGate from '@/components/AdditionalChildGate';
 import Home from '@/pages/Home';
 import FAQ from '@/pages/FAQ';
 import Resources from '@/pages/Resources';
@@ -120,7 +121,9 @@ const AuthenticatedApp = () => {
               <Route path="goals" element={<ParentGoals />} />
               <Route path="alerts" element={<ParentAlerts />} />
               <Route path="transactions/:transactionId/edit" element={<ParentEditTransaction />} />
-              <Route path="add-child" element={<ParentAddChild />} />
+              <Route element={<AdditionalChildGate />}>
+                <Route path="add-child" element={<ParentAddChild />} />
+              </Route>
               <Route path="children/:childId" element={<ParentChildDetail />} />
               <Route path="settings" element={<ParentSettings />} />
             </Route>

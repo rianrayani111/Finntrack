@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { db } from '@/api/db';
+import { useAuth } from '@/lib/AuthContext';
 import {
   buildMonthlySummary,
   CATEGORY_LABELS,
@@ -17,6 +18,7 @@ import AchievementsPanel from '@/components/AchievementsPanel';
 export default function ParentChildDetail() {
   const { childId } = useParams();
   const navigate = useNavigate();
+  const { refreshSubscription } = useAuth();
   const [child, setChild] = useState(null);
   const [transactions, setTransactions] = useState([]);
   const [earnedBadgeKeys, setEarnedBadgeKeys] = useState(new Set());
@@ -49,6 +51,7 @@ export default function ParentChildDetail() {
     setDeleting(true);
     try {
       await db.users.deleteChild(childId);
+      refreshSubscription();
       navigate('/parent');
     } finally {
       setDeleting(false);

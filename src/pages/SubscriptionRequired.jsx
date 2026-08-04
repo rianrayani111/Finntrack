@@ -7,8 +7,8 @@ import { toast } from "@/components/ui/use-toast";
 import { Lock } from "lucide-react";
 
 const INTERVALS = [
-  { value: "month", label: "Monthly", price: "$6.99", priceSuffix: "billed monthly" },
-  { value: "year", label: "Annual", price: "$49.99", priceSuffix: "billed annually", badge: "Over 40% savings" },
+  { value: "month", label: "Monthly", price: "$3.99", priceSuffix: "billed monthly" },
+  { value: "year", label: "Annual", price: "$19.99", priceSuffix: "billed annually", badge: "Save over 55%" },
 ];
 
 export default function SubscriptionRequired() {
@@ -101,9 +101,9 @@ export default function SubscriptionRequired() {
           </>
         ) : (
           <>
-            <h1 className="text-xl font-extrabold text-slate-800">Subscribe to get started</h1>
+            <h1 className="text-xl font-extrabold text-slate-800">Add another child</h1>
             <p className="text-sm text-muted-foreground font-semibold">
-              FinnTrack is billed per child. Choose a plan to add your first child.
+              Your first child is always free. Additional children are $3.99/month or $19.99/year each.
             </p>
             <div className="grid grid-cols-2 gap-3">
               {INTERVALS.map((opt) => (

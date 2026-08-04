@@ -189,8 +189,8 @@ export const RESOURCE_ARTICLES = [
       {
         type: "ul",
         items: [
-          { label: "Simple Subscription Options:", text: "$6.99 per month or $49.99 per year." },
-          { label: "Sibling Discount:", text: "Families receive a 50% discount for every additional child added, ensuring that larger families can onboard all their kids affordably." },
+          { label: "First Child Free:", text: "Your first child is completely free, no subscription required to get started." },
+          { label: "Additional Children:", text: "Every additional child added is $3.99 per month or $19.99 per year, so larger families can onboard all their kids affordably." },
           { label: "Zero Hidden Fees:", text: "What you see is what you pay—no transaction charges, account minimums, or hidden maintenance costs." },
         ],
       },

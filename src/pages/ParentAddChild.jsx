@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { db } from '@/api/db';
+import { useAuth } from '@/lib/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -8,6 +9,7 @@ import { toast } from '@/components/ui/use-toast';
 const USERNAME_PATTERN = /^[a-z0-9_]{3,20}$/;
 
 export default function ParentAddChild() {
+  const { childCount, refreshSubscription } = useAuth();
   const [displayName, setDisplayName] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -88,6 +90,7 @@ export default function ParentAddChild() {
       setUsernameAvailable(null);
 
       toast({ title: 'Child account created.' });
+      refreshSubscription();
     } catch (error) {
       toast({
         title: 'Could not create child account',
@@ -105,6 +108,11 @@ export default function ParentAddChild() {
         <h1 className="text-2xl font-extrabold text-slate-800">Add a Child</h1>
         <p className="text-sm text-muted-foreground font-semibold mt-1">
           Create a child username + password. Kids never sign up with email.
+        </p>
+        <p className="text-sm font-bold text-emerald-600 mt-2">
+          {(childCount ?? 0) === 0
+            ? 'This child is free.'
+            : 'This will add $3.99/month or $19.99/year to your subscription.'}
         </p>
 
         <form className="space-y-4 mt-6" onSubmit={handleCreateChild}>

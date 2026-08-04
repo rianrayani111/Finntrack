@@ -69,7 +69,7 @@ We may remove any content that breaches this section and may suspend or close ac
 
 ## 6. Prices, payment, billing, and cancellation
 
-**Price.** Access to the Service costs US$6.99 per month, or US$49.99 per year. A single subscription covers every child added to the account. Prices are stated in United States dollars and exclude any taxes, which will be added where required by law.
+**Price.** Your first child is free. Each additional child costs US$3.99 per month, or US$19.99 per year, billed per child beyond the first. Prices are stated in United States dollars and exclude any taxes, which will be added where required by law.
 
 **Payment processing.** Payments are processed by Stripe. We do not receive or store full card numbers. Your payment details are handled by Stripe under its own terms and privacy policy.
 
