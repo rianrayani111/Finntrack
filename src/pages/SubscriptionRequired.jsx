@@ -101,9 +101,9 @@ export default function SubscriptionRequired() {
           </>
         ) : (
           <>
-            <h1 className="text-xl font-extrabold text-slate-800">Add another child</h1>
+            <h1 className="text-xl font-extrabold text-slate-800">Subscription required</h1>
             <p className="text-sm text-muted-foreground font-semibold">
-              Your first child is always free. Additional children are $3.99/month or $19.99/year each.
+              An active subscription is required to keep using FinnTrack with more than one child.
             </p>
             <div className="grid grid-cols-2 gap-3">
               {INTERVALS.map((opt) => (

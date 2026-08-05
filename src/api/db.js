@@ -197,7 +197,15 @@ const auth = {
     const { data, error } = await supabase.functions.invoke('create-child-account', {
       body: { displayName, username, password },
     });
-    if (error) throw new Error(await readFunctionErrorMessage(error));
+    if (error) {
+      const message = await readFunctionErrorMessage(error);
+      const err = new Error(message);
+      // Lets callers distinguish "not paid yet, 402" (worth retrying while a
+      // checkout's webhook is still landing) from a genuine failure like a
+      // taken username, without string-matching the message.
+      err.status = error.context?.status;
+      throw err;
+    }
     return data;
   },
 
@@ -584,9 +592,9 @@ const billingApi = {
       : { status: null, currentPeriodEnd: null, childCount: 0 };
   },
 
-  createCheckoutSession: async (interval) => {
+  createCheckoutSession: async (interval, returnTo) => {
     const { data, error } = await supabase.functions.invoke('create-checkout-session', {
-      body: { interval },
+      body: returnTo ? { interval, returnTo } : { interval },
     });
     if (error) throw new Error(await readFunctionErrorMessage(error));
     return data;

@@ -15,6 +15,12 @@ Deno.serve(async (req: Request) => {
       throw new HttpError(400, 'interval must be "month" or "year".');
     }
 
+    // Where to send the parent back after Stripe Checkout -- e.g. the add-child
+    // page, so it can resume creating the child that triggered this checkout.
+    // Restricted to a same-app path under /parent to avoid an open redirect.
+    const requestedReturnTo = String(body.returnTo || '');
+    const returnTo = requestedReturnTo.startsWith('/parent') ? requestedReturnTo : '/parent';
+
     const { data: existing } = await supabaseAdmin
       .from('subscriptions')
       .select('status, stripe_customer_id')
@@ -47,8 +53,8 @@ Deno.serve(async (req: Request) => {
       customer: customerId,
       line_items: [{ price: STRIPE_PRICE_IDS[interval], quantity: 1 }],
       subscription_data: { metadata: { parent_id: parentUid } },
-      success_url: `${origin}/parent?checkout=success`,
-      cancel_url: `${origin}/parent?checkout=cancelled`,
+      success_url: `${origin}${returnTo}?checkout=success`,
+      cancel_url: `${origin}${returnTo}?checkout=cancelled`,
       allow_promotion_codes: true,
       // Skips the card-collection step entirely when the total due (now and for
       // all future renewals) is $0 — e.g. a forever/100%-off promo code. Any
