@@ -3,15 +3,13 @@ import { Link } from "react-router-dom";
 import FinnLogo from "@/components/FinnLogo";
 import usePageMeta from "@/hooks/usePageMeta";
 import rianPhoto from "@/assets/team/Rian.jpeg";
-import hanliangPhoto from "@/assets/team/Hanliang.jpeg";
 import rishaPhoto from "@/assets/team/Risha.jpeg";
 import jaceyPhoto from "@/assets/team/Jacey.jpeg";
 
 const TEAM = [
-  { name: "Rian Rayani", title: "N/A", photo: rianPhoto },
-  { name: "Hanliang Zhou", title: "N/A", photo: hanliangPhoto },
-  { name: "Risha Sampath", title: "N/A", photo: rishaPhoto },
-  { name: "Jacey Chang", title: "N/A", photo: jaceyPhoto },
+  { name: "Rian Rayani", title: "CEO", photo: rianPhoto },
+  { name: "Risha Sampath", title: "Head of Marketing", photo: rishaPhoto },
+  { name: "Jacey Chang", title: "Head of Design", photo: jaceyPhoto },
 ];
 
 export default function About() {
@@ -126,7 +124,7 @@ export default function About() {
               </p>
             </div>
 
-            <div className="mt-4 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="mt-4 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {TEAM.map((member) => (
                 <div
                   key={member.name}
