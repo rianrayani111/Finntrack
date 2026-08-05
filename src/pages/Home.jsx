@@ -103,7 +103,7 @@ export default function Home() {
                 to="/about"
                 className="inline-flex h-12 items-center justify-center rounded-2xl border-2 border-sky-200 bg-white px-5 text-base font-extrabold text-sky-700 transition-all duration-200 hover:-translate-y-0.5 hover:border-sky-300"
               >
-                About
+                About Us
               </Link>
               <Link
                 to="/faq"

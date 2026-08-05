@@ -19,6 +19,12 @@ export default function FinnAuthLayout({ children, showMascot = true, mascotMess
           Home
         </Link>
         <Link
+          to="/about"
+          className="inline-flex h-10 items-center justify-center rounded-2xl border-2 border-white/40 bg-white/10 px-4 text-sm font-extrabold text-white backdrop-blur-md transition-all duration-200 hover:-translate-y-0.5 hover:bg-white/20"
+        >
+          About Us
+        </Link>
+        <Link
           to="/faq"
           className="inline-flex h-10 items-center justify-center rounded-2xl border-2 border-white/40 bg-white/10 px-4 text-sm font-extrabold text-white backdrop-blur-md transition-all duration-200 hover:-translate-y-0.5 hover:bg-white/20"
         >
