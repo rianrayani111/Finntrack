@@ -114,6 +114,9 @@ export default function FAQ() {
             <a href="mailto:contact@finntrack.net" className="transition-colors hover:text-sky-700">
               contact@finntrack.net
             </a>
+            <Link to="/about" className="transition-colors hover:text-sky-700">
+              About Us
+            </Link>
             <Link to="/terms" className="transition-colors hover:text-sky-700">
               Terms & Conditions
             </Link>

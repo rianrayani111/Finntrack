@@ -30,6 +30,7 @@ import ParentSettings from '@/pages/ParentSettings';
 import RoleGuard from '@/components/RoleGuard';
 import SubscriptionGate from '@/components/SubscriptionGate';
 import Home from '@/pages/Home';
+import About from '@/pages/About';
 import FAQ from '@/pages/FAQ';
 import Resources from '@/pages/Resources';
 import ResourceArticle from '@/pages/ResourceArticle';
@@ -93,6 +94,7 @@ const AuthenticatedApp = () => {
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/terms" element={<Terms />} />
+      <Route path="/about" element={<About />} />
       <Route path="/faq" element={<FAQ />} />
       <Route path="/resources" element={<Resources />} />
       <Route path="/resources/:slug" element={<ResourceArticle />} />

@@ -100,6 +100,12 @@ export default function Home() {
 
             <div className="flex items-center gap-3">
               <Link
+                to="/about"
+                className="inline-flex h-12 items-center justify-center rounded-2xl border-2 border-sky-200 bg-white px-5 text-base font-extrabold text-sky-700 transition-all duration-200 hover:-translate-y-0.5 hover:border-sky-300"
+              >
+                About
+              </Link>
+              <Link
                 to="/faq"
                 className="inline-flex h-12 items-center justify-center rounded-2xl border-2 border-sky-200 bg-white px-5 text-base font-extrabold text-sky-700 transition-all duration-200 hover:-translate-y-0.5 hover:border-sky-300"
               >
@@ -240,6 +246,9 @@ export default function Home() {
             <a href="mailto:contact@finntrack.net" className="transition-colors hover:text-sky-700">
               contact@finntrack.net
             </a>
+            <Link to="/about" className="transition-colors hover:text-sky-700">
+              About Us
+            </Link>
             <Link to="/terms" className="transition-colors hover:text-sky-700">
               Terms & Conditions
             </Link>
