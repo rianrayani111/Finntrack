@@ -8,11 +8,18 @@ export const stripe = new Stripe(STRIPE_SECRET_KEY, {
   httpClient: Stripe.createFetchHttpClient(),
 });
 
-// A parent's first child is free, so these prices represent the cost of
-// every child AFTER the first — not a flat family price.
+// 'base' is the required account subscription (includes one complimentary
+// child); 'addon' represents the cost of every child AFTER the first, as its
+// own separate subscription on the same Stripe customer.
 export const STRIPE_PRICE_IDS = {
-  month: Deno.env.get('STRIPE_PRICE_MONTHLY')!,
-  year: Deno.env.get('STRIPE_PRICE_ANNUAL')!,
+  base: {
+    month: Deno.env.get('STRIPE_PRICE_BASE_MONTHLY')!,
+    year: Deno.env.get('STRIPE_PRICE_BASE_ANNUAL')!,
+  },
+  addon: {
+    month: Deno.env.get('STRIPE_PRICE_MONTHLY')!,
+    year: Deno.env.get('STRIPE_PRICE_ANNUAL')!,
+  },
 };
 
 export type UpsertOutcome =
@@ -31,6 +38,10 @@ export async function upsertFromSubscription(subscription: Stripe.Subscription):
     return { skipped: true, reason: 'no parent_id metadata' };
   }
 
+  // Older subscriptions predate the base/addon split and have no plan_type
+  // metadata — they were all addon (per-child) subscriptions.
+  const planType = subscription.metadata?.plan_type === 'base' ? 'base' : 'addon';
+
   const item = subscription.items.data[0];
   if (!item) return { skipped: true, reason: 'no subscription item', parentId };
 
@@ -38,6 +49,7 @@ export async function upsertFromSubscription(subscription: Stripe.Subscription):
     .from('subscriptions')
     .select('stripe_subscription_id, stripe_subscription_created_at')
     .eq('parent_id', parentId)
+    .eq('plan_type', planType)
     .single();
 
   const incomingCreated = new Date(subscription.created * 1000);
@@ -75,6 +87,7 @@ export async function upsertFromSubscription(subscription: Stripe.Subscription):
     .upsert(
       {
         parent_id: parentId,
+        plan_type: planType,
         stripe_customer_id: String(subscription.customer),
         stripe_subscription_id: subscription.id,
         stripe_subscription_created_at: incomingCreated.toISOString(),
@@ -84,7 +97,7 @@ export async function upsertFromSubscription(subscription: Stripe.Subscription):
         current_period_end: new Date(periodEndSeconds * 1000).toISOString(),
         updated_at: new Date().toISOString(),
       },
-      { onConflict: 'parent_id' }
+      { onConflict: 'parent_id,plan_type' }
     );
 
   if (error) throw error;
@@ -102,6 +115,7 @@ export async function syncSubscriptionQuantity(parentUid: string) {
       .from('subscriptions')
       .select('stripe_subscription_id')
       .eq('parent_id', parentUid)
+      .eq('plan_type', 'addon')
       .single();
 
     if (!sub?.stripe_subscription_id) return;
@@ -150,11 +164,15 @@ export async function syncSubscriptionQuantity(parentUid: string) {
 
 // Strict 'active' check for gating "add a child" — a parent with a failing
 // card (status 'past_due') should not be able to add more billable children.
-export async function hasActiveSubscription(parentUid: string): Promise<boolean> {
+export async function hasActiveSubscription(
+  parentUid: string,
+  planType: 'base' | 'addon' = 'addon'
+): Promise<boolean> {
   const { data } = await supabaseAdmin
     .from('subscriptions')
     .select('status')
     .eq('parent_id', parentUid)
+    .eq('plan_type', planType)
     .single();
 
   return data?.status === 'active';

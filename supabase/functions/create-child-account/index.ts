@@ -21,7 +21,7 @@ Deno.serve(async (req: Request) => {
       .eq('parent_id', parentUid);
 
     const isAdditionalChild = (existingChildCount || 0) >= 1;
-    if (isAdditionalChild && !(await hasActiveSubscription(parentUid))) {
+    if (isAdditionalChild && !(await hasActiveSubscription(parentUid, 'addon'))) {
       throw new HttpError(
         402,
         'Your first child is free. Adding another child requires an active subscription — $3.99/month or $19.99/year.'

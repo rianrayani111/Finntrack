@@ -32,7 +32,7 @@ const INTERVAL_OPTIONS = [
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export default function ParentAddChild() {
-  const { childCount, subscriptionStatus, refreshSubscription } = useAuth();
+  const { childCount, addonSubscriptionStatus, refreshSubscription } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const [children, setChildren] = useState([]);
@@ -54,7 +54,7 @@ export default function ParentAddChild() {
   const [resuming, setResuming] = useState(false);
   const [resumeError, setResumeError] = useState(null);
 
-  const needsCheckout = (childCount ?? 0) >= 1 && subscriptionStatus !== 'active';
+  const needsCheckout = (childCount ?? 0) >= 1 && addonSubscriptionStatus !== 'active';
   const usernameFormatValid = USERNAME_PATTERN.test(username.trim().toLowerCase());
 
   const canSubmit = useMemo(() => {
@@ -203,7 +203,7 @@ export default function ParentAddChild() {
       setRedirecting(true);
       try {
         sessionStorage.setItem(PENDING_CHILD_KEY, JSON.stringify(payload));
-        const { url } = await db.billing.createCheckoutSession(interval, '/parent/add-child');
+        const { url } = await db.billing.createCheckoutSession(interval, '/parent/add-child', 'addon');
         window.location.href = url;
       } catch (err) {
         sessionStorage.removeItem(PENDING_CHILD_KEY);

@@ -6,15 +6,22 @@ import FinnLogo from "@/components/FinnLogo";
 import { toast } from "@/components/ui/use-toast";
 import { Lock } from "lucide-react";
 
-const INTERVALS = [
+const BASE_INTERVALS = [
+  { value: "month", label: "Monthly", price: "$6.99", priceSuffix: "billed monthly" },
+  { value: "year", label: "Annual", price: "$49.99", priceSuffix: "billed annually", badge: "Save over 40%" },
+];
+
+const ADDON_INTERVALS = [
   { value: "month", label: "Monthly", price: "$3.99", priceSuffix: "billed monthly" },
   { value: "year", label: "Annual", price: "$19.99", priceSuffix: "billed annually", badge: "Save over 55%" },
 ];
 
 export default function SubscriptionRequired() {
-  const { role, subscriptionStatus, refreshSubscription, logout } = useAuth();
+  const { role, baseSubscriptionStatus, addonSubscriptionStatus, refreshSubscription, logout } = useAuth();
   const [interval, setInterval] = useState("month");
   const [redirecting, setRedirecting] = useState(false);
+
+  const needsBase = baseSubscriptionStatus !== "active";
 
   // A parent may land here right after a checkout redirect, before the Stripe
   // webhook has finished updating our DB — poll briefly so the gate lifts as
@@ -38,12 +45,13 @@ export default function SubscriptionRequired() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const hasLapsedSubscription = subscriptionStatus != null;
+  const relevantStatus = needsBase ? baseSubscriptionStatus : addonSubscriptionStatus;
+  const hasLapsedSubscription = relevantStatus != null;
 
   const handleSubscribe = async () => {
     setRedirecting(true);
     try {
-      const { url } = await db.billing.createCheckoutSession(interval);
+      const { url } = await db.billing.createCheckoutSession(interval, undefined, needsBase ? "base" : "addon");
       window.location.href = url;
     } catch (err) {
       toast({ title: "Could not start checkout", description: err.message, variant: "destructive" });
@@ -103,10 +111,12 @@ export default function SubscriptionRequired() {
           <>
             <h1 className="text-xl font-extrabold text-slate-800">Subscription required</h1>
             <p className="text-sm text-muted-foreground font-semibold">
-              An active subscription is required to keep using FinnTrack with more than one child.
+              {needsBase
+                ? "FinnTrack includes your first child free. Additional children are billed separately."
+                : "An active subscription is required to keep using FinnTrack with more than one child."}
             </p>
             <div className="grid grid-cols-2 gap-3">
-              {INTERVALS.map((opt) => (
+              {(needsBase ? BASE_INTERVALS : ADDON_INTERVALS).map((opt) => (
                 <button
                   key={opt.value}
                   type="button"

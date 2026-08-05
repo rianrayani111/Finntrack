@@ -9,8 +9,10 @@ const clearAuthState = (setters) => {
   setters.setProfile(null);
   setters.setRole(null);
   setters.setIsAuthenticated(false);
-  setters.setSubscriptionStatus(null);
-  setters.setSubscriptionPeriodEnd(null);
+  setters.setBaseSubscriptionStatus(null);
+  setters.setBaseSubscriptionPeriodEnd(null);
+  setters.setAddonSubscriptionStatus(null);
+  setters.setAddonSubscriptionPeriodEnd(null);
   setters.setChildCount(null);
 };
 
@@ -24,19 +26,26 @@ export const AuthProvider = ({ children }) => {
   const [authError, setAuthError] = useState(null);
   const [authChecked, setAuthChecked] = useState(false);
   const [appPublicSettings, setAppPublicSettings] = useState(null);
-  const [subscriptionStatus, setSubscriptionStatus] = useState(null);
-  const [subscriptionPeriodEnd, setSubscriptionPeriodEnd] = useState(null);
+  const [baseSubscriptionStatus, setBaseSubscriptionStatus] = useState(null);
+  const [baseSubscriptionPeriodEnd, setBaseSubscriptionPeriodEnd] = useState(null);
+  const [addonSubscriptionStatus, setAddonSubscriptionStatus] = useState(null);
+  const [addonSubscriptionPeriodEnd, setAddonSubscriptionPeriodEnd] = useState(null);
   const [childCount, setChildCount] = useState(null);
 
   const loadSubscriptionStatus = async () => {
     try {
-      const { status, currentPeriodEnd, childCount: count } = await db.billing.getStatus();
-      setSubscriptionStatus(status);
-      setSubscriptionPeriodEnd(currentPeriodEnd);
+      const { baseStatus, baseCurrentPeriodEnd, addonStatus, addonCurrentPeriodEnd, childCount: count } =
+        await db.billing.getStatus();
+      setBaseSubscriptionStatus(baseStatus);
+      setBaseSubscriptionPeriodEnd(baseCurrentPeriodEnd);
+      setAddonSubscriptionStatus(addonStatus);
+      setAddonSubscriptionPeriodEnd(addonCurrentPeriodEnd);
       setChildCount(count);
     } catch {
-      setSubscriptionStatus(null);
-      setSubscriptionPeriodEnd(null);
+      setBaseSubscriptionStatus(null);
+      setBaseSubscriptionPeriodEnd(null);
+      setAddonSubscriptionStatus(null);
+      setAddonSubscriptionPeriodEnd(null);
       setChildCount(null);
     }
   };
@@ -48,7 +57,7 @@ export const AuthProvider = ({ children }) => {
       const currentUser = await db.auth.me();
 
       if (!currentUser) {
-        clearAuthState({ setUser, setProfile, setRole, setIsAuthenticated, setSubscriptionStatus, setSubscriptionPeriodEnd, setChildCount });
+        clearAuthState({ setUser, setProfile, setRole, setIsAuthenticated, setBaseSubscriptionStatus, setBaseSubscriptionPeriodEnd, setAddonSubscriptionStatus, setAddonSubscriptionPeriodEnd, setChildCount });
         setAuthChecked(true);
         setIsLoadingAuth(false);
         return null;
@@ -64,7 +73,7 @@ export const AuthProvider = ({ children }) => {
       await loadSubscriptionStatus();
       return userProfile;
     } catch (error) {
-      clearAuthState({ setUser, setProfile, setRole, setIsAuthenticated, setSubscriptionStatus, setSubscriptionPeriodEnd, setChildCount });
+      clearAuthState({ setUser, setProfile, setRole, setIsAuthenticated, setBaseSubscriptionStatus, setBaseSubscriptionPeriodEnd, setAddonSubscriptionStatus, setAddonSubscriptionPeriodEnd, setChildCount });
       setAuthError({ type: 'auth_required', message: error.message || 'Authentication required.' });
       setAuthChecked(true);
       setIsLoadingAuth(false);
@@ -115,7 +124,7 @@ export const AuthProvider = ({ children }) => {
 
       return { success: true, role: userProfile.role };
     } catch (error) {
-      clearAuthState({ setUser, setProfile, setRole, setIsAuthenticated, setSubscriptionStatus, setSubscriptionPeriodEnd, setChildCount });
+      clearAuthState({ setUser, setProfile, setRole, setIsAuthenticated, setBaseSubscriptionStatus, setBaseSubscriptionPeriodEnd, setAddonSubscriptionStatus, setAddonSubscriptionPeriodEnd, setChildCount });
       setAuthChecked(true);
       throw error;
     }
@@ -149,7 +158,7 @@ export const AuthProvider = ({ children }) => {
       await loadSubscriptionStatus();
       return { success: true };
     } catch (error) {
-      clearAuthState({ setUser, setProfile, setRole, setIsAuthenticated, setSubscriptionStatus, setSubscriptionPeriodEnd, setChildCount });
+      clearAuthState({ setUser, setProfile, setRole, setIsAuthenticated, setBaseSubscriptionStatus, setBaseSubscriptionPeriodEnd, setAddonSubscriptionStatus, setAddonSubscriptionPeriodEnd, setChildCount });
       setAuthChecked(true);
       throw error;
     }
@@ -170,7 +179,7 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async (shouldRedirect = true) => {
     await db.auth.logout();
-    clearAuthState({ setUser, setProfile, setRole, setIsAuthenticated, setSubscriptionStatus, setSubscriptionPeriodEnd, setChildCount });
+    clearAuthState({ setUser, setProfile, setRole, setIsAuthenticated, setBaseSubscriptionStatus, setBaseSubscriptionPeriodEnd, setAddonSubscriptionStatus, setAddonSubscriptionPeriodEnd, setChildCount });
     setAuthChecked(true);
 
     if (shouldRedirect && typeof window !== 'undefined') {
@@ -210,12 +219,17 @@ export const AuthProvider = ({ children }) => {
         checkUserAuth,
         checkAppState,
         refreshProfile,
-        subscriptionStatus,
-        subscriptionPeriodEnd,
+        baseSubscriptionStatus,
+        baseSubscriptionPeriodEnd,
+        addonSubscriptionStatus,
+        addonSubscriptionPeriodEnd,
         childCount,
-        // A family's first child is always free; only a 2nd+ child requires
-        // an active subscription for the whole family to keep working.
-        hasActiveAccess: (childCount ?? 0) <= 1 || subscriptionStatus === 'active',
+        // The base plan is always required to use the app at all. A family's
+        // first child is included free; only a 2nd+ child additionally
+        // requires an active addon subscription for the whole family to keep working.
+        hasActiveAccess:
+          baseSubscriptionStatus === 'active' &&
+          ((childCount ?? 0) <= 1 || addonSubscriptionStatus === 'active'),
         refreshSubscription: loadSubscriptionStatus,
       }}
     >

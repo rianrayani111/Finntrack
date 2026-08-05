@@ -9,20 +9,24 @@ Deno.serve(async (req: Request) => {
   try {
     const { uid: parentUid } = await requireParent(req);
 
-    const { data: sub } = await supabaseAdmin
+    // A parent can hold up to two subscription rows (base + addon) that
+    // share one Stripe customer -- either one having a customer id is enough.
+    const { data: subs } = await supabaseAdmin
       .from('subscriptions')
       .select('stripe_customer_id')
       .eq('parent_id', parentUid)
-      .single();
+      .not('stripe_customer_id', 'is', null)
+      .limit(1);
 
-    if (!sub?.stripe_customer_id) {
+    const customerId = subs?.[0]?.stripe_customer_id;
+    if (!customerId) {
       throw new HttpError(404, 'No billing account found for this parent yet.');
     }
 
     const origin = req.headers.get('origin') || 'https://www.finntrack.net';
 
     const portalSession = await stripe.billingPortal.sessions.create({
-      customer: sub.stripe_customer_id,
+      customer: customerId,
       return_url: `${origin}/parent/settings`,
     });
 

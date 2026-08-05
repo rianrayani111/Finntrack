@@ -55,7 +55,16 @@ function PasswordInput({ id, value, onChange, show, onToggleShow, autoComplete }
 }
 
 export default function ParentSettings() {
-  const { user, profile, refreshProfile, logout, subscriptionStatus, subscriptionPeriodEnd } = useAuth();
+  const {
+    user,
+    profile,
+    refreshProfile,
+    logout,
+    baseSubscriptionStatus,
+    baseSubscriptionPeriodEnd,
+    addonSubscriptionStatus,
+    addonSubscriptionPeriodEnd,
+  } = useAuth();
 
   const [displayName, setDisplayName] = useState("");
   const [savingProfile, setSavingProfile] = useState(false);
@@ -328,13 +337,21 @@ export default function ParentSettings() {
       <div className="finn-card space-y-3">
         <h2 className="text-lg font-extrabold text-slate-800">Billing</h2>
         <p className="text-sm text-muted-foreground font-semibold">
-          Your first child is always free — you're billed only for additional children.
+          Your account ($6.99/mo or $49.99/yr) includes your first child free — you're billed separately only for
+          additional children.
         </p>
-        {subscriptionStatus && (
+        {baseSubscriptionStatus && (
           <p className="text-sm text-muted-foreground font-semibold">
-            Status: <span className="capitalize">{subscriptionStatus}</span>
-            {subscriptionPeriodEnd &&
-              ` · renews ${new Date(subscriptionPeriodEnd).toLocaleDateString()}`}
+            Account plan: <span className="capitalize">{baseSubscriptionStatus}</span>
+            {baseSubscriptionPeriodEnd &&
+              ` · renews ${new Date(baseSubscriptionPeriodEnd).toLocaleDateString()}`}
+          </p>
+        )}
+        {addonSubscriptionStatus && (
+          <p className="text-sm text-muted-foreground font-semibold">
+            Additional children: <span className="capitalize">{addonSubscriptionStatus}</span>
+            {addonSubscriptionPeriodEnd &&
+              ` · renews ${new Date(addonSubscriptionPeriodEnd).toLocaleDateString()}`}
           </p>
         )}
         <Button

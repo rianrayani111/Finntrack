@@ -10,6 +10,8 @@ Deno.serve(async (req: Request) => {
     const { uid: parentUid } = await requireParent(req);
 
     const body = await req.json().catch(() => ({}));
+    const plan = body.plan === 'base' ? 'base' : 'addon';
+
     const interval = String(body.interval || '');
     if (interval !== 'month' && interval !== 'year') {
       throw new HttpError(400, 'interval must be "month" or "year".');
@@ -21,17 +23,19 @@ Deno.serve(async (req: Request) => {
     const requestedReturnTo = String(body.returnTo || '');
     const returnTo = requestedReturnTo.startsWith('/parent') ? requestedReturnTo : '/parent';
 
-    const { data: existing } = await supabaseAdmin
+    // A parent can hold up to two independent subscriptions (base + addon)
+    // on one shared Stripe customer, so this is no longer a single row.
+    const { data: existingRows } = await supabaseAdmin
       .from('subscriptions')
-      .select('status, stripe_customer_id')
-      .eq('parent_id', parentUid)
-      .single();
+      .select('plan_type, status, stripe_customer_id')
+      .eq('parent_id', parentUid);
 
+    const existing = existingRows?.find((row) => row.plan_type === plan);
     if (existing?.status === 'active') {
       throw new HttpError(409, 'You already have an active subscription. Use Manage Billing instead.');
     }
 
-    let customerId = existing?.stripe_customer_id;
+    let customerId = existingRows?.find((row) => row.stripe_customer_id)?.stripe_customer_id;
     if (!customerId) {
       const { data: profile } = await supabaseAdmin
         .from('profiles')
@@ -51,8 +55,8 @@ Deno.serve(async (req: Request) => {
     const session = await stripe.checkout.sessions.create({
       mode: 'subscription',
       customer: customerId,
-      line_items: [{ price: STRIPE_PRICE_IDS[interval], quantity: 1 }],
-      subscription_data: { metadata: { parent_id: parentUid } },
+      line_items: [{ price: STRIPE_PRICE_IDS[plan][interval], quantity: 1 }],
+      subscription_data: { metadata: { parent_id: parentUid, plan_type: plan } },
       success_url: `${origin}${returnTo}?checkout=success`,
       cancel_url: `${origin}${returnTo}?checkout=cancelled`,
       allow_promotion_codes: true,

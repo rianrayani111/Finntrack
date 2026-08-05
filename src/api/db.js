@@ -588,13 +588,19 @@ const billingApi = {
     if (error) throw new Error(error.message);
     const row = (data || [])[0];
     return row
-      ? { status: row.status, currentPeriodEnd: row.current_period_end, childCount: row.child_count ?? 0 }
-      : { status: null, currentPeriodEnd: null, childCount: 0 };
+      ? {
+          baseStatus: row.base_status,
+          baseCurrentPeriodEnd: row.base_current_period_end,
+          addonStatus: row.addon_status,
+          addonCurrentPeriodEnd: row.addon_current_period_end,
+          childCount: row.child_count ?? 0,
+        }
+      : { baseStatus: null, baseCurrentPeriodEnd: null, addonStatus: null, addonCurrentPeriodEnd: null, childCount: 0 };
   },
 
-  createCheckoutSession: async (interval, returnTo) => {
+  createCheckoutSession: async (interval, returnTo, plan = 'addon') => {
     const { data, error } = await supabase.functions.invoke('create-checkout-session', {
-      body: returnTo ? { interval, returnTo } : { interval },
+      body: { interval, plan, ...(returnTo ? { returnTo } : {}) },
     });
     if (error) throw new Error(await readFunctionErrorMessage(error));
     return data;
