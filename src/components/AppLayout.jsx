@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { db } from '@/api/db';
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 
@@ -21,6 +21,7 @@ import {
   History,
   Target,
   HandCoins,
+  ListChecks,
   UserCircle,
   Trophy,
   Menu,
@@ -37,6 +38,7 @@ const NAV_ITEMS = [
   { label: "Transaction History", path: "/history", icon: History },
   { label: "Goals", path: "/goals", icon: Target },
   { label: "Requests", path: "/requests", icon: HandCoins },
+  { label: "Tasks", path: "/tasks", icon: ListChecks },
   { label: "Achievements", path: "/achievements", icon: Trophy },
   { label: "Profile", path: "/profile", icon: UserCircle },
 ];
@@ -45,9 +47,23 @@ export default function AppLayout() {
   const location = useLocation();
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [assignedTaskCount, setAssignedTaskCount] = useState(0);
 
   const isActive = (path) =>
     path === "/dashboard" ? location.pathname === "/dashboard" : location.pathname.startsWith(path);
+
+  const refreshAssignedTaskCount = async () => {
+    try {
+      const tasks = await db.entities.Task.list();
+      setAssignedTaskCount((tasks || []).filter((task) => task.status === 'assigned').length);
+    } catch {
+      // Best-effort badge; leave the previous count on failure.
+    }
+  };
+
+  useEffect(() => {
+    refreshAssignedTaskCount();
+  }, []);
 
   const handleLogout = async () => {
     await db.auth.logout();
@@ -80,6 +96,11 @@ export default function AppLayout() {
               >
                 <Icon className="w-5 h-5" />
                 {label}
+                {label === 'Tasks' && assignedTaskCount > 0 && !isActive(path) && (
+                  <span className="ml-auto flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-full bg-rose-500 text-white text-xs font-extrabold">
+                    {assignedTaskCount}
+                  </span>
+                )}
               </Link>
             ))}
           </nav>
@@ -135,7 +156,7 @@ export default function AppLayout() {
           </header>
 
           <main className="p-4 lg:p-6">
-            <Outlet />
+            <Outlet context={{ refreshAssignedTaskCount }} />
           </main>
         </div>
       </div>
@@ -170,6 +191,11 @@ export default function AppLayout() {
                 >
                   <Icon className="w-5 h-5" />
                   {label}
+                  {label === 'Tasks' && assignedTaskCount > 0 && !isActive(path) && (
+                    <span className="ml-auto flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-full bg-rose-500 text-white text-xs font-extrabold">
+                      {assignedTaskCount}
+                    </span>
+                  )}
                 </Link>
               ))}
             </nav>

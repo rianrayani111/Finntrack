@@ -19,6 +19,7 @@ import {
   Target,
   Bell,
   HandCoins,
+  ListChecks,
   UserPlus,
   LogOut,
   Menu,
@@ -33,6 +34,7 @@ const NAV_ITEMS = [
   { label: 'Add Money', path: '/parent/add-money', icon: PlusCircle },
   { label: 'Goals', path: '/parent/goals', icon: Target },
   { label: 'Requests', path: '/parent/requests', icon: HandCoins },
+  { label: 'Tasks', path: '/parent/tasks', icon: ListChecks },
   { label: 'Alerts', path: '/parent/alerts', icon: Bell },
   { label: 'Add a Child', path: '/parent/add-child', icon: UserPlus },
   { label: 'Settings', path: '/parent/settings', icon: Settings },
@@ -44,6 +46,7 @@ export default function ParentLayout() {
   const { logout } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [pendingRequestCount, setPendingRequestCount] = useState(0);
+  const [pendingTaskApprovalCount, setPendingTaskApprovalCount] = useState(0);
 
   const isActive = (path) =>
     path === '/parent' ? location.pathname === '/parent' : location.pathname.startsWith(path);
@@ -57,8 +60,18 @@ export default function ParentLayout() {
     }
   };
 
+  const refreshPendingTaskApprovalCount = async () => {
+    try {
+      const tasks = await db.entities.Task.list();
+      setPendingTaskApprovalCount((tasks || []).filter((task) => task.status === 'submitted').length);
+    } catch {
+      // Best-effort badge; leave the previous count on failure.
+    }
+  };
+
   useEffect(() => {
     refreshPendingRequestCount();
+    refreshPendingTaskApprovalCount();
   }, []);
 
   const handleLogout = async () => {
@@ -94,6 +107,11 @@ export default function ParentLayout() {
                 {label === 'Requests' && pendingRequestCount > 0 && !isActive(path) && (
                   <span className="ml-auto flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-full bg-rose-500 text-white text-xs font-extrabold">
                     {pendingRequestCount}
+                  </span>
+                )}
+                {label === 'Tasks' && pendingTaskApprovalCount > 0 && !isActive(path) && (
+                  <span className="ml-auto flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-full bg-rose-500 text-white text-xs font-extrabold">
+                    {pendingTaskApprovalCount}
                   </span>
                 )}
               </Link>
@@ -151,7 +169,7 @@ export default function ParentLayout() {
           </header>
 
           <main className="p-4 lg:p-6">
-            <Outlet context={{ refreshPendingRequestCount }} />
+            <Outlet context={{ refreshPendingRequestCount, refreshPendingTaskApprovalCount }} />
           </main>
         </div>
       </div>
@@ -189,6 +207,11 @@ export default function ParentLayout() {
                   {label === 'Requests' && pendingRequestCount > 0 && !isActive(path) && (
                     <span className="ml-auto flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-full bg-rose-500 text-white text-xs font-extrabold">
                       {pendingRequestCount}
+                    </span>
+                  )}
+                  {label === 'Tasks' && pendingTaskApprovalCount > 0 && !isActive(path) && (
+                    <span className="ml-auto flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-full bg-rose-500 text-white text-xs font-extrabold">
+                      {pendingTaskApprovalCount}
                     </span>
                   )}
                 </Link>

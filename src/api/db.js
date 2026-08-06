@@ -80,6 +80,22 @@ const rowToMoneyRequest = (row) => ({
   resolvedAt: row.resolved_at,
 });
 
+const rowToTask = (row) => ({
+  id: row.id,
+  parentId: row.parent_id,
+  childId: row.child_id,
+  name: row.name,
+  description: row.description,
+  amount: Number(row.amount),
+  status: row.status,
+  proofText: row.proof_text,
+  proofPhotoUrl: row.proof_photo_url,
+  transactionId: row.transaction_id,
+  createdAt: row.created_at,
+  submittedAt: row.submitted_at,
+  resolvedAt: row.resolved_at,
+});
+
 const rowToAlert = (row) => ({
   id: row.id,
   parentId: row.parent_id,
@@ -668,6 +684,70 @@ const moneyRequestApi = {
   },
 };
 
+const taskApi = {
+  // RLS scopes this to the caller's own tasks (child) or their children's
+  // tasks (parent), so one query works for both roles.
+  list: async () => {
+    const { data, error } = await supabase
+      .from('tasks')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (error) throw new Error(error.message);
+    return (data || []).map(rowToTask);
+  },
+
+  create: async (payload = {}) => {
+    const profile = await requireCurrentProfile();
+    if (profile.role !== 'parent') throw new Error('Only parents can create tasks.');
+
+    const childId = String(payload.childId || '').trim();
+    const name = String(payload.name || '').trim();
+    const description = String(payload.description || '').trim();
+    const amount = Number(payload.amount || 0);
+    if (!childId) throw new Error('Please choose which child this task is for.');
+    if (!name) throw new Error('Please name the task.');
+    if (!description) throw new Error('Please describe what needs to be done.');
+    if (!(amount > 0)) throw new Error('Amount must be greater than zero.');
+
+    const row = {
+      parent_id: profile.uid,
+      child_id: childId,
+      name,
+      description,
+      amount,
+    };
+
+    const { data, error } = await supabase.from('tasks').insert(row).select().single();
+    if (error) throw new Error(error.message);
+    return rowToTask(data);
+  },
+
+  submit: async (taskId, { proofText, proofPhotoUrl } = {}) => {
+    const { data, error } = await supabase.rpc('submit_task', {
+      p_task_id: taskId,
+      p_proof_text: proofText || null,
+      p_proof_photo_url: proofPhotoUrl || null,
+    });
+    if (error) throw new Error(error.message);
+    return rowToTask(Array.isArray(data) ? data[0] : data);
+  },
+
+  resolve: async (taskId, decision) => {
+    const { data, error } = await supabase.rpc('resolve_task', {
+      p_task_id: taskId,
+      p_decision: decision,
+    });
+    if (error) throw new Error(error.message);
+    return rowToTask(Array.isArray(data) ? data[0] : data);
+  },
+
+  delete: async (taskId) => {
+    const { error } = await supabase.from('tasks').delete().eq('id', taskId);
+    if (error) throw new Error(error.message);
+    return { success: true };
+  },
+};
+
 const alertsApi = {
   list: async () => {
     const { data, error } = await supabase
@@ -702,6 +782,7 @@ export const db = {
     Transaction: transactionApi,
     Goal: goalApi,
     MoneyRequest: moneyRequestApi,
+    Task: taskApi,
   },
   integrations: {
     Core: {
