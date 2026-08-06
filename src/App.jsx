@@ -16,11 +16,13 @@ import AddTransaction from "@/pages/AddTransaction";
 import MonthlySummary from "@/pages/MonthlySummary";
 import TransactionHistory from "@/pages/TransactionHistory";
 import Goals from '@/pages/Goals';
+import Requests from '@/pages/Requests';
 import Achievements from '@/pages/Achievements';
 import Profile from "@/pages/Profile";
 import ParentLayout from '@/components/ParentLayout';
 import ParentDashboard from '@/pages/ParentDashboard';
 import ParentAddMoney from '@/pages/ParentAddMoney';
+import ParentRequests from '@/pages/ParentRequests';
 import ParentAlerts from '@/pages/ParentAlerts';
 import ParentAddChild from '@/pages/ParentAddChild';
 import ParentChildDetail from '@/pages/ParentChildDetail';
@@ -110,6 +112,7 @@ const AuthenticatedApp = () => {
               <Route path="/summary" element={<MonthlySummary />} />
               <Route path="/history" element={<TransactionHistory />} />
               <Route path="/goals" element={<Goals />} />
+              <Route path="/requests" element={<Requests />} />
               <Route path="/achievements" element={<Achievements />} />
               <Route path="/profile" element={<Profile />} />
             </Route>
@@ -120,6 +123,7 @@ const AuthenticatedApp = () => {
               <Route index element={<ParentDashboard />} />
               <Route path="add-money" element={<ParentAddMoney />} />
               <Route path="goals" element={<ParentGoals />} />
+              <Route path="requests" element={<ParentRequests />} />
               <Route path="alerts" element={<ParentAlerts />} />
               <Route path="transactions/:transactionId/edit" element={<ParentEditTransaction />} />
               <Route path="add-child" element={<ParentAddChild />} />

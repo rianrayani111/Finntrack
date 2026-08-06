@@ -20,6 +20,7 @@ import {
   CalendarRange,
   History,
   Target,
+  HandCoins,
   UserCircle,
   Trophy,
   Menu,
@@ -35,6 +36,7 @@ const NAV_ITEMS = [
   { label: "Monthly Summary", path: "/summary", icon: CalendarRange },
   { label: "Transaction History", path: "/history", icon: History },
   { label: "Goals", path: "/goals", icon: Target },
+  { label: "Requests", path: "/requests", icon: HandCoins },
   { label: "Achievements", path: "/achievements", icon: Trophy },
   { label: "Profile", path: "/profile", icon: UserCircle },
 ];

@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { db } from '@/api/db';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -17,6 +18,7 @@ import {
   PlusCircle,
   Target,
   Bell,
+  HandCoins,
   UserPlus,
   LogOut,
   Menu,
@@ -30,6 +32,7 @@ const NAV_ITEMS = [
   { label: 'Dashboard', path: '/parent', icon: LayoutDashboard },
   { label: 'Add Money', path: '/parent/add-money', icon: PlusCircle },
   { label: 'Goals', path: '/parent/goals', icon: Target },
+  { label: 'Requests', path: '/parent/requests', icon: HandCoins },
   { label: 'Alerts', path: '/parent/alerts', icon: Bell },
   { label: 'Add a Child', path: '/parent/add-child', icon: UserPlus },
   { label: 'Settings', path: '/parent/settings', icon: Settings },
@@ -40,9 +43,23 @@ export default function ParentLayout() {
   const navigate = useNavigate();
   const { logout } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [pendingRequestCount, setPendingRequestCount] = useState(0);
 
   const isActive = (path) =>
     path === '/parent' ? location.pathname === '/parent' : location.pathname.startsWith(path);
+
+  const refreshPendingRequestCount = async () => {
+    try {
+      const requests = await db.entities.MoneyRequest.list();
+      setPendingRequestCount((requests || []).filter((request) => request.status === 'pending').length);
+    } catch {
+      // Best-effort badge; leave the previous count on failure.
+    }
+  };
+
+  useEffect(() => {
+    refreshPendingRequestCount();
+  }, []);
 
   const handleLogout = async () => {
     await logout(false);
@@ -74,6 +91,11 @@ export default function ParentLayout() {
               >
                 <Icon className="w-5 h-5" />
                 {label}
+                {label === 'Requests' && pendingRequestCount > 0 && !isActive(path) && (
+                  <span className="ml-auto flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-full bg-rose-500 text-white text-xs font-extrabold">
+                    {pendingRequestCount}
+                  </span>
+                )}
               </Link>
             ))}
           </nav>
@@ -129,7 +151,7 @@ export default function ParentLayout() {
           </header>
 
           <main className="p-4 lg:p-6">
-            <Outlet />
+            <Outlet context={{ refreshPendingRequestCount }} />
           </main>
         </div>
       </div>
@@ -164,6 +186,11 @@ export default function ParentLayout() {
                 >
                   <Icon className="w-5 h-5" />
                   {label}
+                  {label === 'Requests' && pendingRequestCount > 0 && !isActive(path) && (
+                    <span className="ml-auto flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-full bg-rose-500 text-white text-xs font-extrabold">
+                      {pendingRequestCount}
+                    </span>
+                  )}
                 </Link>
               ))}
             </nav>

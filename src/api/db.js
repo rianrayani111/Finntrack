@@ -68,6 +68,18 @@ const rowToGoal = (row) => ({
   updatedAt: row.updated_at,
 });
 
+const rowToMoneyRequest = (row) => ({
+  id: row.id,
+  parentId: row.parent_id,
+  childId: row.child_id,
+  amount: Number(row.amount),
+  description: row.description,
+  status: row.status,
+  transactionId: row.transaction_id,
+  createdAt: row.created_at,
+  resolvedAt: row.resolved_at,
+});
+
 const rowToAlert = (row) => ({
   id: row.id,
   parentId: row.parent_id,
@@ -613,6 +625,49 @@ const billingApi = {
   },
 };
 
+const moneyRequestApi = {
+  // RLS scopes this to the caller's own requests (child) or their children's
+  // requests (parent), so one query works for both roles.
+  list: async () => {
+    const { data, error } = await supabase
+      .from('money_requests')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (error) throw new Error(error.message);
+    return (data || []).map(rowToMoneyRequest);
+  },
+
+  create: async (payload = {}) => {
+    const profile = await requireCurrentProfile();
+    if (profile.role !== 'child') throw new Error('Only children can send money requests.');
+
+    const amount = Number(payload.amount || 0);
+    const description = String(payload.description || '').trim();
+    if (!(amount > 0)) throw new Error('Amount must be greater than zero.');
+    if (!description) throw new Error('Please describe what this request is for.');
+
+    const row = {
+      parent_id: profile.parentId,
+      child_id: profile.uid,
+      amount,
+      description,
+    };
+
+    const { data, error } = await supabase.from('money_requests').insert(row).select().single();
+    if (error) throw new Error(error.message);
+    return rowToMoneyRequest(data);
+  },
+
+  resolve: async (requestId, decision) => {
+    const { data, error } = await supabase.rpc('resolve_money_request', {
+      p_request_id: requestId,
+      p_decision: decision,
+    });
+    if (error) throw new Error(error.message);
+    return rowToMoneyRequest(Array.isArray(data) ? data[0] : data);
+  },
+};
+
 const alertsApi = {
   list: async () => {
     const { data, error } = await supabase
@@ -646,6 +701,7 @@ export const db = {
   entities: {
     Transaction: transactionApi,
     Goal: goalApi,
+    MoneyRequest: moneyRequestApi,
   },
   integrations: {
     Core: {
