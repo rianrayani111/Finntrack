@@ -1,7 +1,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
-import FinnLogo from "@/components/FinnLogo";
+import PublicHeader from "@/components/PublicHeader";
 import usePageMeta from "@/hooks/usePageMeta";
 import { RESOURCE_ARTICLES } from "@/content/resources";
 
@@ -18,43 +18,7 @@ export default function Resources() {
       <div className="home-ocean-glow home-ocean-glow-b" aria-hidden="true" />
 
       <div className="relative z-10">
-        <header className="w-full px-4 pt-5 sm:px-6 lg:px-8">
-          <div className="mx-auto flex w-full max-w-6xl items-center justify-between rounded-3xl border border-white/45 bg-white/70 px-4 py-3 shadow-lg backdrop-blur-md sm:px-6">
-            <Link to="/" className="inline-flex items-center gap-2" aria-label="FinnTrack home">
-              <FinnLogo className="h-10 w-10" />
-              <span className="text-xl font-black tracking-tight text-slate-800">
-                Finn<span className="text-amber-500">Track</span>
-              </span>
-            </Link>
-
-            <div className="flex items-center gap-3">
-              <Link
-                to="/"
-                className="inline-flex h-12 items-center justify-center rounded-2xl border-2 border-sky-200 bg-white px-5 text-base font-extrabold text-sky-700 transition-all duration-200 hover:-translate-y-0.5 hover:border-sky-300"
-              >
-                Home
-              </Link>
-              <Link
-                to="/about"
-                className="inline-flex h-12 items-center justify-center rounded-2xl border-2 border-sky-200 bg-white px-5 text-base font-extrabold text-sky-700 transition-all duration-200 hover:-translate-y-0.5 hover:border-sky-300"
-              >
-                About Us
-              </Link>
-              <Link
-                to="/faq"
-                className="inline-flex h-12 items-center justify-center rounded-2xl border-2 border-sky-200 bg-white px-5 text-base font-extrabold text-sky-700 transition-all duration-200 hover:-translate-y-0.5 hover:border-sky-300"
-              >
-                FAQs
-              </Link>
-              <Link
-                to="/login"
-                className="inline-flex h-12 items-center justify-center rounded-2xl bg-sky-500 px-6 text-base font-extrabold text-white transition-all duration-200 hover:-translate-y-0.5 hover:bg-sky-600"
-              >
-                Login
-              </Link>
-            </div>
-          </div>
-        </header>
+        <PublicHeader active="resources" />
 
         <main className="px-4 pb-14 pt-7 sm:px-6 lg:px-8">
           <div className="mx-auto w-full max-w-6xl">

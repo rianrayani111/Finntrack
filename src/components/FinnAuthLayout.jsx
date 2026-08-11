@@ -1,9 +1,19 @@
-import React from "react";
+import React, { useState } from "react";
 import { Link } from "react-router-dom";
+import { Menu, X } from "lucide-react";
 import DolphinMascot from "@/components/DolphinMascot";
 import FinnLogo from "@/components/FinnLogo";
 
+const NAV_LINKS = [
+  { key: "home", label: "Home", path: "/" },
+  { key: "about", label: "About Us", path: "/about" },
+  { key: "faq", label: "FAQs", path: "/faq" },
+  { key: "resources", label: "Resources", path: "/resources" },
+];
+
 export default function FinnAuthLayout({ children, showMascot = true, mascotMessage }) {
+  const [menuOpen, setMenuOpen] = useState(false);
+
   return (
     <div className="min-h-screen flex items-center justify-center px-4 py-8 relative overflow-hidden">
       {/* Ocean background */}
@@ -11,31 +21,45 @@ export default function FinnAuthLayout({ children, showMascot = true, mascotMess
       <div className="absolute top-0 left-0 w-72 h-72 bg-white/10 rounded-full -translate-x-1/3 -translate-y-1/3 blur-2xl" />
       <div className="absolute bottom-0 right-0 w-96 h-96 bg-cyan-200/20 rounded-full translate-x-1/3 translate-y-1/3 blur-2xl" />
 
-      <div className="absolute top-4 right-4 z-10 flex items-center gap-2 sm:top-6 sm:right-6">
-        <Link
-          to="/"
-          className="inline-flex h-10 items-center justify-center rounded-2xl border-2 border-white/40 bg-white/10 px-4 text-sm font-extrabold text-white backdrop-blur-md transition-all duration-200 hover:-translate-y-0.5 hover:bg-white/20"
+      {/* Nav links no longer fit next to each other on portrait phones, so
+          below `sm` they collapse behind a toggle button instead of squishing. */}
+      <div className="absolute top-4 right-4 z-20 sm:top-6 sm:right-6">
+        <div className="hidden items-center gap-2 sm:flex">
+          {NAV_LINKS.map((link) => (
+            <Link
+              key={link.key}
+              to={link.path}
+              className="inline-flex h-10 items-center justify-center rounded-2xl border-2 border-white/40 bg-white/10 px-4 text-sm font-extrabold text-white backdrop-blur-md transition-all duration-200 hover:-translate-y-0.5 hover:bg-white/20"
+            >
+              {link.label}
+            </Link>
+          ))}
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setMenuOpen((v) => !v)}
+          className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border-2 border-white/40 bg-white/10 text-white backdrop-blur-md transition-all duration-200 hover:bg-white/20 sm:hidden"
+          aria-label={menuOpen ? "Close menu" : "Open menu"}
+          aria-expanded={menuOpen}
         >
-          Home
-        </Link>
-        <Link
-          to="/about"
-          className="inline-flex h-10 items-center justify-center rounded-2xl border-2 border-white/40 bg-white/10 px-4 text-sm font-extrabold text-white backdrop-blur-md transition-all duration-200 hover:-translate-y-0.5 hover:bg-white/20"
-        >
-          About Us
-        </Link>
-        <Link
-          to="/faq"
-          className="inline-flex h-10 items-center justify-center rounded-2xl border-2 border-white/40 bg-white/10 px-4 text-sm font-extrabold text-white backdrop-blur-md transition-all duration-200 hover:-translate-y-0.5 hover:bg-white/20"
-        >
-          FAQs
-        </Link>
-        <Link
-          to="/resources"
-          className="inline-flex h-10 items-center justify-center rounded-2xl border-2 border-white/40 bg-white/10 px-4 text-sm font-extrabold text-white backdrop-blur-md transition-all duration-200 hover:-translate-y-0.5 hover:bg-white/20"
-        >
-          Resources
-        </Link>
+          {menuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+        </button>
+
+        {menuOpen && (
+          <div className="absolute right-0 mt-2 flex w-44 flex-col gap-1.5 rounded-2xl border-2 border-white/40 bg-sky-600/95 p-2 shadow-xl backdrop-blur-md sm:hidden">
+            {NAV_LINKS.map((link) => (
+              <Link
+                key={link.key}
+                to={link.path}
+                onClick={() => setMenuOpen(false)}
+                className="flex h-10 items-center rounded-xl px-3 text-sm font-extrabold text-white transition-colors hover:bg-white/20"
+              >
+                {link.label}
+              </Link>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="relative w-full max-w-md">
