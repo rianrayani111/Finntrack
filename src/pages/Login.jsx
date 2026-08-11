@@ -156,7 +156,7 @@ export default function Login() {
     <FinnAuthLayout mascotMessage="Welcome back, friend!">
       {view === VIEW.CHILD_LOGIN && (
         <>
-          <h2 className="text-2xl font-extrabold text-slate-800 text-center mb-1">Kid Log In</h2>
+          <h2 className="text-2xl font-extrabold text-slate-800 text-center mb-1">Child Login</h2>
           <p className="text-sm text-muted-foreground font-semibold text-center mb-5">
             Enter your username and password to continue.
           </p>
@@ -276,7 +276,7 @@ export default function Login() {
               onClick={() => setView(VIEW.CHILD_SIGNUP_BLOCKED)}
               className="text-slate-500 hover:text-sky-600 hover:underline"
             >
-              Sign up as a kid
+              Sign up as a child
             </button>
           </div>
         </>
@@ -376,7 +376,7 @@ export default function Login() {
               onClick={moveToChildLogin}
               className="text-slate-500 hover:text-sky-600 hover:underline"
             >
-              Back
+              Log in as a child
             </button>
             <br />
             <button
@@ -385,6 +385,14 @@ export default function Login() {
               className="text-slate-500 hover:text-sky-600 hover:underline"
             >
               Sign up as a parent
+            </button>
+            <br />
+            <button
+              type="button"
+              onClick={() => setView(VIEW.CHILD_SIGNUP_BLOCKED)}
+              className="text-slate-500 hover:text-sky-600 hover:underline"
+            >
+              Sign up as a child
             </button>
           </div>
         </>
