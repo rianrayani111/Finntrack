@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { useOutletContext } from 'react-router-dom';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useOutletContext, useSearchParams } from 'react-router-dom';
 import { db } from '@/api/db';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -33,6 +33,9 @@ const formatDateTime = (isoString) => {
 
 export default function ParentTasks() {
   const { refreshPendingTaskApprovalCount } = useOutletContext() || {};
+  const [searchParams] = useSearchParams();
+  const highlightedTaskId = searchParams.get('taskId');
+  const taskRefs = useRef({});
   const [children, setChildren] = useState([]);
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -74,6 +77,22 @@ export default function ParentTasks() {
       .filter((task) => task.status === 'approved' || task.status === 'declined')
       .sort((a, b) => new Date(b.resolvedAt || b.createdAt) - new Date(a.resolvedAt || a.createdAt));
   }, [tasks]);
+
+  useEffect(() => {
+    if (!highlightedTaskId || tasks.length === 0) return;
+    const target = tasks.find((task) => task.id === highlightedTaskId);
+    if (!target) return;
+    if (target.status === 'approved' || target.status === 'declined') {
+      setShowHistory(true);
+    }
+    const timer = setTimeout(() => {
+      taskRefs.current[highlightedTaskId]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 100);
+    return () => clearTimeout(timer);
+  }, [highlightedTaskId, tasks]);
+
+  const highlightClass = (taskId) =>
+    taskId === highlightedTaskId ? 'ring-2 ring-sky-400' : '';
 
   const handleInputChange = (field, value) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -250,7 +269,11 @@ export default function ParentTasks() {
           <h2 className="text-xl font-extrabold text-slate-800">Needs Your Approval</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {submittedTasks.map((task) => (
-              <div key={task.id} className="finn-card space-y-3">
+              <div
+                key={task.id}
+                ref={(el) => { taskRefs.current[task.id] = el; }}
+                className={`finn-card space-y-3 ${highlightClass(task.id)}`}
+              >
                 <div className="flex items-center justify-between gap-2">
                   <p className="font-extrabold text-slate-800">{childName(task.childId)}</p>
                   <span className="text-2xl font-extrabold text-slate-800">{formatCurrency(task.amount)}</span>
@@ -306,7 +329,11 @@ export default function ParentTasks() {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {assignedTasks.map((task) => (
-              <div key={task.id} className="finn-card space-y-3">
+              <div
+                key={task.id}
+                ref={(el) => { taskRefs.current[task.id] = el; }}
+                className={`finn-card space-y-3 ${highlightClass(task.id)}`}
+              >
                 <div className="flex items-center justify-between gap-2">
                   <p className="font-extrabold text-slate-800">{childName(task.childId)}</p>
                   <span className="text-2xl font-extrabold text-slate-800">{formatCurrency(task.amount)}</span>
@@ -346,7 +373,13 @@ export default function ParentTasks() {
           {showHistory && (
             <div className="finn-card divide-y divide-slate-100">
               {historyTasks.map((task) => (
-                <div key={task.id} className="py-3 first:pt-0 last:pb-0 flex items-center justify-between gap-3">
+                <div
+                  key={task.id}
+                  ref={(el) => { taskRefs.current[task.id] = el; }}
+                  className={`py-3 first:pt-0 last:pb-0 flex items-center justify-between gap-3 rounded-xl ${
+                    task.id === highlightedTaskId ? 'ring-2 ring-sky-400 px-2' : ''
+                  }`}
+                >
                   <div className="min-w-0">
                     <p className="text-sm font-bold text-slate-800 truncate">
                       {childName(task.childId)} &mdash; {task.name}

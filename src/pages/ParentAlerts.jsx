@@ -2,10 +2,11 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { db } from '@/api/db';
 import { Button } from '@/components/ui/button';
 import { formatCurrency } from '@/lib/finance';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useOutletContext } from 'react-router-dom';
 
 export default function ParentAlerts() {
   const navigate = useNavigate();
+  const { refreshUnreadAlertCount } = useOutletContext() || {};
   const [alerts, setAlerts] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -23,17 +24,20 @@ export default function ParentAlerts() {
   const markRead = async (alertId) => {
     await db.alerts.markRead(alertId);
     await loadAlerts();
+    await refreshUnreadAlertCount?.();
   };
 
   const markAllRead = async () => {
     await db.alerts.markAllRead();
     await loadAlerts();
+    await refreshUnreadAlertCount?.();
   };
 
   const handleEditFromAlert = async (alert) => {
     if (!alert.read) {
       await db.alerts.markRead(alert.id);
       await loadAlerts();
+      await refreshUnreadAlertCount?.();
     }
     navigate(`/parent/transactions/${alert.transactionId}/edit`);
   };

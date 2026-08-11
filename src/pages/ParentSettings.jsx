@@ -5,6 +5,7 @@ import { useAuth } from "@/lib/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -86,6 +87,7 @@ export default function ParentSettings() {
 
   const [deletingAccount, setDeletingAccount] = useState(false);
   const [managingBilling, setManagingBilling] = useState(false);
+  const [savingReceiptSettingId, setSavingReceiptSettingId] = useState(null);
 
   useEffect(() => {
     setDisplayName(profile?.displayName || "");
@@ -161,6 +163,23 @@ export default function ParentSettings() {
       toast({ title: "Could not update password", description: err.message, variant: "destructive" });
     } finally {
       setSavingChildPassword(false);
+    }
+  };
+
+  const handleToggleReceiptRequired = async (child, required) => {
+    setSavingReceiptSettingId(child.uid);
+    setChildren((prev) =>
+      prev.map((c) => (c.uid === child.uid ? { ...c, requireRefundReceipt: required } : c))
+    );
+    try {
+      await db.users.setChildRefundReceiptRequired(child.uid, required);
+    } catch (err) {
+      setChildren((prev) =>
+        prev.map((c) => (c.uid === child.uid ? { ...c, requireRefundReceipt: !required } : c))
+      );
+      toast({ title: "Could not update setting", description: err.message, variant: "destructive" });
+    } finally {
+      setSavingReceiptSettingId(null);
     }
   };
 
@@ -272,15 +291,13 @@ export default function ParentSettings() {
         ) : (
           <div className="space-y-3">
             {children.map((child) => (
-              <div
-                key={child.uid}
-                className="flex items-center justify-between gap-3 rounded-2xl bg-slate-50 px-4 py-3"
-              >
-                <div>
-                  <p className="font-extrabold text-slate-800">{child.displayName}</p>
-                  <p className="text-sm text-muted-foreground font-semibold">@{child.username}</p>
-                </div>
-                <Dialog
+              <div key={child.uid} className="rounded-2xl bg-slate-50 px-4 py-3 space-y-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="font-extrabold text-slate-800">{child.displayName}</p>
+                    <p className="text-sm text-muted-foreground font-semibold">@{child.username}</p>
+                  </div>
+                  <Dialog
                   open={childPasswordTarget?.uid === child.uid}
                   onOpenChange={(open) => (open ? openChildPasswordDialog(child) : setChildPasswordTarget(null))}
                 >
@@ -327,7 +344,21 @@ export default function ParentSettings() {
                       </DialogFooter>
                     </form>
                   </DialogContent>
-                </Dialog>
+                  </Dialog>
+                </div>
+                <div className="flex items-center justify-between gap-3 pt-3 border-t border-slate-200">
+                  <div>
+                    <p className="text-sm font-bold text-slate-700">Require receipt for refunds</p>
+                    <p className="text-xs text-muted-foreground font-semibold">
+                      {child.displayName} must attach a photo before requesting a refund.
+                    </p>
+                  </div>
+                  <Switch
+                    checked={Boolean(child.requireRefundReceipt)}
+                    disabled={savingReceiptSettingId === child.uid}
+                    onCheckedChange={(checked) => handleToggleReceiptRequired(child, checked)}
+                  />
+                </div>
               </div>
             ))}
           </div>

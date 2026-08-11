@@ -48,6 +48,7 @@ export default function AppLayout() {
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [assignedTaskCount, setAssignedTaskCount] = useState(0);
+  const [pendingRequestCount, setPendingRequestCount] = useState(0);
 
   const isActive = (path) =>
     path === "/dashboard" ? location.pathname === "/dashboard" : location.pathname.startsWith(path);
@@ -61,8 +62,18 @@ export default function AppLayout() {
     }
   };
 
+  const refreshPendingRequestCount = async () => {
+    try {
+      const requests = await db.entities.Request.list();
+      setPendingRequestCount((requests || []).filter((request) => request.status === 'pending').length);
+    } catch {
+      // Best-effort badge; leave the previous count on failure.
+    }
+  };
+
   useEffect(() => {
     refreshAssignedTaskCount();
+    refreshPendingRequestCount();
   }, []);
 
   const handleLogout = async () => {
@@ -96,6 +107,11 @@ export default function AppLayout() {
               >
                 <Icon className="w-5 h-5" />
                 {label}
+                {label === 'Requests' && pendingRequestCount > 0 && !isActive(path) && (
+                  <span className="ml-auto flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-full bg-rose-500 text-white text-xs font-extrabold">
+                    {pendingRequestCount}
+                  </span>
+                )}
                 {label === 'Tasks' && assignedTaskCount > 0 && !isActive(path) && (
                   <span className="ml-auto flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-full bg-rose-500 text-white text-xs font-extrabold">
                     {assignedTaskCount}
@@ -156,7 +172,7 @@ export default function AppLayout() {
           </header>
 
           <main className="p-4 lg:p-6">
-            <Outlet context={{ refreshAssignedTaskCount }} />
+            <Outlet context={{ refreshAssignedTaskCount, refreshPendingRequestCount }} />
           </main>
         </div>
       </div>
@@ -191,6 +207,11 @@ export default function AppLayout() {
                 >
                   <Icon className="w-5 h-5" />
                   {label}
+                  {label === 'Requests' && pendingRequestCount > 0 && !isActive(path) && (
+                    <span className="ml-auto flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-full bg-rose-500 text-white text-xs font-extrabold">
+                      {pendingRequestCount}
+                    </span>
+                  )}
                   {label === 'Tasks' && assignedTaskCount > 0 && !isActive(path) && (
                     <span className="ml-auto flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-full bg-rose-500 text-white text-xs font-extrabold">
                       {assignedTaskCount}

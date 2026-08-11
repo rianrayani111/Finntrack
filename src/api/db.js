@@ -28,6 +28,7 @@ const rowToProfile = (row) => ({
   xp: Number(row.xp) || 0,
   summaryViewsCount: Number(row.summary_views_count) || 0,
   historyViewsCount: Number(row.history_views_count) || 0,
+  requireRefundReceipt: Boolean(row.require_refund_receipt),
   avatar: {
     skin: row.avatar_skin,
     hairStyle: row.avatar_hair_style,
@@ -68,14 +69,19 @@ const rowToGoal = (row) => ({
   updatedAt: row.updated_at,
 });
 
-const rowToMoneyRequest = (row) => ({
+const rowToRequest = (row) => ({
   id: row.id,
   parentId: row.parent_id,
   childId: row.child_id,
+  type: row.type,
   amount: Number(row.amount),
   description: row.description,
+  dueDate: row.due_date,
+  proofText: row.proof_text,
+  proofPhotoUrl: row.proof_photo_url,
   status: row.status,
   transactionId: row.transaction_id,
+  taskId: row.task_id,
   createdAt: row.created_at,
   resolvedAt: row.resolved_at,
 });
@@ -326,6 +332,15 @@ const users = {
     });
     if (error) throw new Error(await readFunctionErrorMessage(error));
     return data;
+  },
+
+  setChildRefundReceiptRequired: async (childUid, required) => {
+    const { data, error } = await supabase.rpc('set_child_refund_receipt_required', {
+      p_child_id: childUid,
+      p_required: required,
+    });
+    if (error) throw new Error(error.message);
+    return rowToProfile(data);
   },
 
   // Called once per calendar day (idempotent server-side) so a child's
@@ -641,46 +656,59 @@ const billingApi = {
   },
 };
 
-const moneyRequestApi = {
+const REQUEST_TYPES = ['money', 'chore_promise', 'refund'];
+
+const requestApi = {
   // RLS scopes this to the caller's own requests (child) or their children's
   // requests (parent), so one query works for both roles.
   list: async () => {
     const { data, error } = await supabase
-      .from('money_requests')
+      .from('requests')
       .select('*')
       .order('created_at', { ascending: false });
     if (error) throw new Error(error.message);
-    return (data || []).map(rowToMoneyRequest);
+    return (data || []).map(rowToRequest);
   },
 
   create: async (payload = {}) => {
     const profile = await requireCurrentProfile();
-    if (profile.role !== 'child') throw new Error('Only children can send money requests.');
+    if (profile.role !== 'child') throw new Error('Only children can send requests.');
 
+    const type = REQUEST_TYPES.includes(payload.type) ? payload.type : 'money';
     const amount = Number(payload.amount || 0);
     const description = String(payload.description || '').trim();
+    const dueDate = payload.dueDate || null;
+    const proofText = String(payload.proofText || '').trim();
+    const proofPhotoUrl = payload.proofPhotoUrl || '';
     if (!(amount > 0)) throw new Error('Amount must be greater than zero.');
     if (!description) throw new Error('Please describe what this request is for.');
+    if (type === 'refund' && profile.requireRefundReceipt && !proofPhotoUrl) {
+      throw new Error('Your parent requires a photo of the receipt for refund requests.');
+    }
 
     const row = {
       parent_id: profile.parentId,
       child_id: profile.uid,
+      type,
       amount,
       description,
+      due_date: dueDate,
+      proof_text: proofText || null,
+      proof_photo_url: proofPhotoUrl || null,
     };
 
-    const { data, error } = await supabase.from('money_requests').insert(row).select().single();
+    const { data, error } = await supabase.from('requests').insert(row).select().single();
     if (error) throw new Error(error.message);
-    return rowToMoneyRequest(data);
+    return rowToRequest(data);
   },
 
   resolve: async (requestId, decision) => {
-    const { data, error } = await supabase.rpc('resolve_money_request', {
+    const { data, error } = await supabase.rpc('resolve_request', {
       p_request_id: requestId,
       p_decision: decision,
     });
     if (error) throw new Error(error.message);
-    return rowToMoneyRequest(Array.isArray(data) ? data[0] : data);
+    return rowToRequest(Array.isArray(data) ? data[0] : data);
   },
 };
 
@@ -781,7 +809,7 @@ export const db = {
   entities: {
     Transaction: transactionApi,
     Goal: goalApi,
-    MoneyRequest: moneyRequestApi,
+    Request: requestApi,
     Task: taskApi,
   },
   integrations: {

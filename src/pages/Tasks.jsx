@@ -1,11 +1,12 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { useOutletContext } from 'react-router-dom';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useOutletContext, useSearchParams } from 'react-router-dom';
 import { db } from '@/api/db';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { toast } from '@/components/ui/use-toast';
 import { formatCurrency } from '@/lib/finance';
+import { compressImageFile, MAX_PHOTO_DATA_URL_LENGTH } from '@/lib/image';
 import { ListChecks, Clock, Camera, X, Hourglass } from 'lucide-react';
 
 const STATUS_STYLES = {
@@ -18,9 +19,6 @@ const STATUS_LABELS = {
   declined: 'Declined',
 };
 
-const MAX_PHOTO_DIMENSION = 800;
-const MAX_PHOTO_DATA_URL_LENGTH = 700_000;
-
 const formatDateTime = (isoString) => {
   if (!isoString) return '';
   return new Date(isoString).toLocaleDateString('en-US', {
@@ -30,29 +28,11 @@ const formatDateTime = (isoString) => {
   });
 };
 
-const compressImageFile = (file) =>
-  new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      const img = new Image();
-      img.onload = () => {
-        const scale = Math.min(1, MAX_PHOTO_DIMENSION / Math.max(img.width, img.height));
-        const canvas = document.createElement('canvas');
-        canvas.width = Math.round(img.width * scale);
-        canvas.height = Math.round(img.height * scale);
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-        resolve(canvas.toDataURL('image/jpeg', 0.6));
-      };
-      img.onerror = () => reject(new Error('Could not read that image.'));
-      img.src = reader.result;
-    };
-    reader.onerror = () => reject(new Error('Could not read that image.'));
-    reader.readAsDataURL(file);
-  });
-
 export default function Tasks() {
   const { refreshAssignedTaskCount } = useOutletContext() || {};
+  const [searchParams] = useSearchParams();
+  const highlightedTaskId = searchParams.get('taskId');
+  const taskRefs = useRef({});
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showHistory, setShowHistory] = useState(false);
@@ -82,6 +62,22 @@ export default function Tasks() {
       .filter((task) => task.status === 'approved' || task.status === 'declined')
       .sort((a, b) => new Date(b.resolvedAt || b.createdAt) - new Date(a.resolvedAt || a.createdAt));
   }, [tasks]);
+
+  useEffect(() => {
+    if (!highlightedTaskId || tasks.length === 0) return;
+    const target = tasks.find((task) => task.id === highlightedTaskId);
+    if (!target) return;
+    if (target.status === 'approved' || target.status === 'declined') {
+      setShowHistory(true);
+    }
+    const timer = setTimeout(() => {
+      taskRefs.current[highlightedTaskId]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 100);
+    return () => clearTimeout(timer);
+  }, [highlightedTaskId, tasks]);
+
+  const highlightClass = (taskId) =>
+    taskId === highlightedTaskId ? 'ring-2 ring-sky-400' : '';
 
   const resetProofForm = () => {
     setExpandedTaskId(null);
@@ -176,7 +172,11 @@ export default function Tasks() {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {assignedTasks.map((task) => (
-              <div key={task.id} className="finn-card space-y-3">
+              <div
+                key={task.id}
+                ref={(el) => { taskRefs.current[task.id] = el; }}
+                className={`finn-card space-y-3 ${highlightClass(task.id)}`}
+              >
                 <div className="flex items-center justify-between gap-2">
                   <p className="font-extrabold text-slate-800">{task.name}</p>
                   <span className="text-2xl font-extrabold text-slate-800">
@@ -254,7 +254,11 @@ export default function Tasks() {
           <h2 className="text-xl font-extrabold text-slate-800">Waiting for Approval</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {submittedTasks.map((task) => (
-              <div key={task.id} className="finn-card space-y-3">
+              <div
+                key={task.id}
+                ref={(el) => { taskRefs.current[task.id] = el; }}
+                className={`finn-card space-y-3 ${highlightClass(task.id)}`}
+              >
                 <div className="flex items-center justify-between gap-2">
                   <p className="font-extrabold text-slate-800">{task.name}</p>
                   <span className="text-2xl font-extrabold text-slate-800">
@@ -285,7 +289,13 @@ export default function Tasks() {
           {showHistory && (
             <div className="finn-card divide-y divide-slate-100">
               {historyTasks.map((task) => (
-                <div key={task.id} className="py-3 first:pt-0 last:pb-0 flex items-center justify-between gap-3">
+                <div
+                  key={task.id}
+                  ref={(el) => { taskRefs.current[task.id] = el; }}
+                  className={`py-3 first:pt-0 last:pb-0 flex items-center justify-between gap-3 rounded-xl ${
+                    task.id === highlightedTaskId ? 'ring-2 ring-sky-400 px-2' : ''
+                  }`}
+                >
                   <div className="min-w-0">
                     <p className="text-sm font-bold text-slate-800 truncate">{task.name}</p>
                     <p className="text-xs text-muted-foreground font-semibold">

@@ -47,13 +47,14 @@ export default function ParentLayout() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [pendingRequestCount, setPendingRequestCount] = useState(0);
   const [pendingTaskApprovalCount, setPendingTaskApprovalCount] = useState(0);
+  const [unreadAlertCount, setUnreadAlertCount] = useState(0);
 
   const isActive = (path) =>
     path === '/parent' ? location.pathname === '/parent' : location.pathname.startsWith(path);
 
   const refreshPendingRequestCount = async () => {
     try {
-      const requests = await db.entities.MoneyRequest.list();
+      const requests = await db.entities.Request.list();
       setPendingRequestCount((requests || []).filter((request) => request.status === 'pending').length);
     } catch {
       // Best-effort badge; leave the previous count on failure.
@@ -69,9 +70,19 @@ export default function ParentLayout() {
     }
   };
 
+  const refreshUnreadAlertCount = async () => {
+    try {
+      const alerts = await db.alerts.list();
+      setUnreadAlertCount((alerts || []).filter((alert) => !alert.read).length);
+    } catch {
+      // Best-effort badge; leave the previous count on failure.
+    }
+  };
+
   useEffect(() => {
     refreshPendingRequestCount();
     refreshPendingTaskApprovalCount();
+    refreshUnreadAlertCount();
   }, []);
 
   const handleLogout = async () => {
@@ -112,6 +123,11 @@ export default function ParentLayout() {
                 {label === 'Tasks' && pendingTaskApprovalCount > 0 && !isActive(path) && (
                   <span className="ml-auto flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-full bg-rose-500 text-white text-xs font-extrabold">
                     {pendingTaskApprovalCount}
+                  </span>
+                )}
+                {label === 'Alerts' && unreadAlertCount > 0 && !isActive(path) && (
+                  <span className="ml-auto flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-full bg-rose-500 text-white text-xs font-extrabold">
+                    {unreadAlertCount}
                   </span>
                 )}
               </Link>
@@ -169,7 +185,7 @@ export default function ParentLayout() {
           </header>
 
           <main className="p-4 lg:p-6">
-            <Outlet context={{ refreshPendingRequestCount, refreshPendingTaskApprovalCount }} />
+            <Outlet context={{ refreshPendingRequestCount, refreshPendingTaskApprovalCount, refreshUnreadAlertCount }} />
           </main>
         </div>
       </div>
@@ -212,6 +228,11 @@ export default function ParentLayout() {
                   {label === 'Tasks' && pendingTaskApprovalCount > 0 && !isActive(path) && (
                     <span className="ml-auto flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-full bg-rose-500 text-white text-xs font-extrabold">
                       {pendingTaskApprovalCount}
+                    </span>
+                  )}
+                  {label === 'Alerts' && unreadAlertCount > 0 && !isActive(path) && (
+                    <span className="ml-auto flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-full bg-rose-500 text-white text-xs font-extrabold">
+                      {unreadAlertCount}
                     </span>
                   )}
                 </Link>
