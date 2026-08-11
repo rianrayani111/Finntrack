@@ -75,13 +75,13 @@ export default function AppLayout() {
     <div className="min-h-screen flex flex-col">
       <div className="flex flex-1">
         <aside className="hidden lg:flex w-72 flex-col border-r border-slate-200 bg-slate-50/80 p-6">
-          <div className="flex items-center gap-3 mb-8">
+          <Link to="/dashboard" className="flex items-center gap-3 mb-8">
             <FinnLogo className="w-14 h-14" />
             <div>
               <h2 className="text-lg font-extrabold text-slate-800">FinnTrack</h2>
               <p className="text-sm text-slate-500">Budgeting made simple</p>
             </div>
-          </div>
+          </Link>
 
           <nav className="space-y-2">
             {NAV_ITEMS.map(({ label, path, icon: Icon }) => (
@@ -165,13 +165,13 @@ export default function AppLayout() {
         <div className="fixed inset-0 z-40 bg-slate-900/50 lg:hidden" onClick={() => setMobileOpen(false)}>
           <div className="w-72 h-full bg-white p-4 flex flex-col" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-3">
+              <Link to="/dashboard" className="flex items-center gap-3" onClick={() => setMobileOpen(false)}>
                 <FinnLogo className="w-12 h-12" />
                 <div>
                   <h2 className="font-extrabold text-slate-800">FinnTrack</h2>
                   <p className="text-sm text-slate-500">Budgeting made simple</p>
                 </div>
-              </div>
+              </Link>
               <Button variant="ghost" size="icon" onClick={() => setMobileOpen(false)}>
                 <X className="w-5 h-5" />
               </Button>

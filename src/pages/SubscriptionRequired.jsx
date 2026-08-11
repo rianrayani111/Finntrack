@@ -20,12 +20,18 @@ export default function SubscriptionRequired() {
   const { role, baseSubscriptionStatus, addonSubscriptionStatus, refreshSubscription, logout } = useAuth();
   const [interval, setInterval] = useState("month");
   const [redirecting, setRedirecting] = useState(false);
+  // A parent may land here right after a checkout redirect, before the Stripe
+  // webhook has finished updating our DB. Until the poll below either lifts
+  // the gate (subscription goes active) or exhausts its attempts, show a
+  // neutral "confirming" state instead of the lapsed-subscription screen —
+  // otherwise someone who just paid briefly sees "update your billing
+  // details" for a subscription that hasn't finished syncing yet.
+  const [checkoutProcessing, setCheckoutProcessing] = useState(
+    () => new URLSearchParams(window.location.search).get("checkout") === "success"
+  );
 
   const needsBase = baseSubscriptionStatus !== "active";
 
-  // A parent may land here right after a checkout redirect, before the Stripe
-  // webhook has finished updating our DB — poll briefly so the gate lifts as
-  // soon as the subscription actually goes active.
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get("checkout") !== "success") return;
@@ -33,20 +39,24 @@ export default function SubscriptionRequired() {
     let cancelled = false;
     let attempts = 0;
     const poll = async () => {
-      if (cancelled || attempts >= 10) return;
+      if (cancelled) return;
       attempts += 1;
       await refreshSubscription();
+      if (cancelled) return;
+      if (attempts >= 10) {
+        setCheckoutProcessing(false);
+        return;
+      }
       setTimeout(poll, 1500);
     };
     poll();
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const relevantStatus = needsBase ? baseSubscriptionStatus : addonSubscriptionStatus;
-  const hasLapsedSubscription = relevantStatus != null;
+  const hasLapsedSubscription = relevantStatus != null && !checkoutProcessing;
 
   const handleSubscribe = async () => {
     setRedirecting(true);
@@ -83,6 +93,21 @@ export default function SubscriptionRequired() {
           <Button variant="outline" className="w-full" onClick={() => logout()}>
             Log out
           </Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (checkoutProcessing) {
+    return (
+      <div className="fixed inset-0 flex items-center justify-center p-6">
+        <div className="finn-card max-w-md w-full text-center space-y-4">
+          <FinnLogo className="w-16 h-16 mx-auto" />
+          <div className="w-8 h-8 border-4 border-slate-200 border-t-slate-800 rounded-full animate-spin mx-auto"></div>
+          <h1 className="text-xl font-extrabold text-slate-800">Confirming your subscription…</h1>
+          <p className="text-sm text-muted-foreground font-semibold">
+            This should only take a few seconds.
+          </p>
         </div>
       </div>
     );
