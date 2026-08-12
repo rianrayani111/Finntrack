@@ -83,9 +83,9 @@ export default function About() {
             </div>
 
             <div className="mt-10">
-              <p className="inline-flex items-center gap-2 rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-xs font-extrabold uppercase tracking-wide text-sky-700">
-                Our Team
-              </p>
+              <h2 className="text-3xl font-black leading-tight tracking-tight text-slate-900 sm:text-4xl">
+                Meet the Founders
+              </h2>
             </div>
 
             <div className="mt-4 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
