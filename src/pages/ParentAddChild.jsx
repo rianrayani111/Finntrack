@@ -95,6 +95,7 @@ export default function ParentAddChild() {
 
     let isActive = true;
     setCheckingUsername(true);
+    setUsernameAvailable(null);
 
     db.users
       .checkUsernameAvailability(cleanUsername)

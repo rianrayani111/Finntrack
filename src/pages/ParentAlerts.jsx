@@ -3,6 +3,7 @@ import { db } from '@/api/db';
 import { Button } from '@/components/ui/button';
 import { formatCurrency } from '@/lib/finance';
 import { useNavigate, useOutletContext } from 'react-router-dom';
+import { toast } from '@/components/ui/use-toast';
 
 export default function ParentAlerts() {
   const navigate = useNavigate();
@@ -22,22 +23,34 @@ export default function ParentAlerts() {
   const unreadCount = useMemo(() => alerts.filter((alert) => !alert.read).length, [alerts]);
 
   const markRead = async (alertId) => {
-    await db.alerts.markRead(alertId);
-    await loadAlerts();
-    await refreshUnreadAlertCount?.();
+    try {
+      await db.alerts.markRead(alertId);
+      await loadAlerts();
+      await refreshUnreadAlertCount?.();
+    } catch (error) {
+      toast({ title: 'Could not mark as read', description: error.message, variant: 'destructive' });
+    }
   };
 
   const markAllRead = async () => {
-    await db.alerts.markAllRead();
-    await loadAlerts();
-    await refreshUnreadAlertCount?.();
+    try {
+      await db.alerts.markAllRead();
+      await loadAlerts();
+      await refreshUnreadAlertCount?.();
+    } catch (error) {
+      toast({ title: 'Could not mark all as read', description: error.message, variant: 'destructive' });
+    }
   };
 
   const handleEditFromAlert = async (alert) => {
     if (!alert.read) {
-      await db.alerts.markRead(alert.id);
-      await loadAlerts();
-      await refreshUnreadAlertCount?.();
+      try {
+        await db.alerts.markRead(alert.id);
+        await loadAlerts();
+        await refreshUnreadAlertCount?.();
+      } catch (error) {
+        toast({ title: 'Could not mark as read', description: error.message, variant: 'destructive' });
+      }
     }
     navigate(`/parent/transactions/${alert.transactionId}/edit`);
   };

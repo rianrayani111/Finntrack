@@ -158,6 +158,7 @@ export default function Requests() {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
+    if (saving) return;
     if (receiptRequired && !form.proofPhotoUrl) {
       toast({
         title: 'Photo required',

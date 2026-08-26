@@ -41,6 +41,7 @@ export default function AddTransaction() {
   };
 
   const handleSave = async () => {
+    if (saving) return;
     if (!validate()) return;
 
     setSaving(true);

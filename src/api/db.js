@@ -799,14 +799,14 @@ const alertsApi = {
 
   markRead: async (alertId) => {
     const { error } = await supabase.from('alerts').update({ read: true }).eq('id', alertId);
-    if (error) return { success: false };
+    if (error) throw new Error(error.message);
     return { success: true };
   },
 
   markAllRead: async () => {
     const user = await requireCurrentUser();
     const { error } = await supabase.from('alerts').update({ read: true }).eq('parent_id', user.id).eq('read', false);
-    if (error) return { success: false };
+    if (error) throw new Error(error.message);
     return { success: true };
   },
 };

@@ -116,6 +116,7 @@ export default function Tasks() {
   };
 
   const handleSubmitCompletion = async (taskId) => {
+    if (submittingId === taskId) return;
     setSubmittingId(taskId);
     try {
       await db.entities.Task.submit(taskId, { proofText: proofText.trim(), proofPhotoUrl: proofPhoto });
