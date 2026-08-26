@@ -11,6 +11,7 @@ import {
   sortByDateDesc,
   transactionReason,
   transactionType,
+  parseLocalDate,
 } from "@/lib/finance";
 
 export default function TransactionHistory() {
@@ -32,7 +33,7 @@ export default function TransactionHistory() {
   const filtered = useMemo(() => {
     return sortByDateDesc(transactions).filter((t) => {
       const matchesSearch = !search || [transactionReason(t), t.location, CATEGORY_LABELS[t.category]].join(' ').toLowerCase().includes(search.toLowerCase());
-      const matchesMonth = monthFilter === 'all' || new Date(t.date).getMonth() === Number(monthFilter);
+      const matchesMonth = monthFilter === 'all' || parseLocalDate(t.date).getMonth() === Number(monthFilter);
       const matchesType = typeFilter === 'all' || transactionType(t) === typeFilter;
       const matchesCategory = categoryFilter === 'all' || t.category === categoryFilter;
       return matchesSearch && matchesMonth && matchesType && matchesCategory;

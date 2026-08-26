@@ -26,8 +26,6 @@ import {
 } from "@/lib/finance";
 import { useCelebrations } from "@/lib/celebrations";
 
-const now = new Date();
-
 function StatCard({ title, value, icon: Icon, tone, subtitle }) {
   const tones = {
     sky: "from-sky-400 to-sky-600",
@@ -119,6 +117,7 @@ export default function Dashboard() {
       .catch(() => {});
   }, []);
 
+  const now = new Date();
   const balance = currentBalance(transactions);
   const earnedThisMonth = earningsForMonth(transactions, now.getFullYear(), now.getMonth());
   const spentThisMonth = spendingForMonth(transactions, now.getFullYear(), now.getMonth());

@@ -32,6 +32,21 @@ const getType = (transaction) => {
 
 const getReason = (transaction) => transaction.reason || transaction.description || '';
 
+// Parses a "YYYY-MM-DD" date-only string as local midnight instead of UTC
+// midnight — new Date("YYYY-MM-DD") parses as UTC, which for any timezone
+// west of UTC can read back a day (and sometimes a month) earlier via the
+// local-time getters (.getFullYear()/.getMonth()/.getDate()).
+export function parseLocalDate(dateStr) {
+  return new Date(`${String(dateStr).slice(0, 10)}T00:00:00`);
+}
+
+// Today's date as a local "YYYY-MM-DD" string. Date#toISOString gives the
+// UTC date, which can already be tomorrow for anyone west of UTC.
+export function todayLocalDateString() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
 export function formatCurrency(value) {
   const num = Number(value || 0);
   const sign = num < 0 ? "-" : "";
@@ -42,7 +57,7 @@ export function formatCurrency(value) {
 }
 
 export function isSameMonth(dateStr, year, month) {
-  const d = new Date(dateStr);
+  const d = parseLocalDate(dateStr);
   return d.getFullYear() === year && d.getMonth() === month;
 }
 
@@ -120,7 +135,7 @@ export function buildMonthlySummary(transactions, year, month) {
 export function buildMonthToDateSummary(transactions, year, month) {
   const today = new Date();
   const monthTxns = transactions.filter((t) => {
-    const txDate = new Date(t.date);
+    const txDate = parseLocalDate(t.date);
     const isSameMonthYear = txDate.getFullYear() === year && txDate.getMonth() === month;
     const isBeforeOrToday = txDate <= today;
     return isSameMonthYear && isBeforeOrToday;

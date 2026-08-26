@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from '@/components/ui/use-toast';
+import { todayLocalDateString } from '@/lib/finance';
 
 export default function ParentAddMoney() {
   const navigate = useNavigate();
@@ -13,7 +14,7 @@ export default function ParentAddMoney() {
   const [childId, setChildId] = useState('');
   const [amount, setAmount] = useState('');
   const [reason, setReason] = useState('');
-  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
+  const [date, setDate] = useState(todayLocalDateString());
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 

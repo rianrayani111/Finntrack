@@ -12,13 +12,14 @@ import FinnLogo from '@/components/FinnLogo';
 import { toast } from '@/components/ui/use-toast';
 import { syncAchievements } from '@/lib/achievementsSync';
 import { useCelebrations } from '@/lib/celebrations';
+import { todayLocalDateString } from '@/lib/finance';
 
 export default function AddTransaction() {
   const navigate = useNavigate();
   const { celebrateGains } = useCelebrations();
 
   const [amount, setAmount] = useState('');
-  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
+  const [date, setDate] = useState(todayLocalDateString());
   const [time, setTime] = useState(new Date().toTimeString().slice(0, 5));
   const [reason, setReason] = useState('');
   const [location, setLocation] = useState('');
