@@ -53,6 +53,9 @@ export default function ParentAddChild() {
 
   const [resuming, setResuming] = useState(false);
   const [resumeError, setResumeError] = useState(null);
+  const [resumePending, setResumePending] = useState(null); // { displayName, username } from a stashed checkout, password never included
+  const [resumePassword, setResumePassword] = useState('');
+  const [resumeConfirmPassword, setResumeConfirmPassword] = useState('');
 
   const needsCheckout = (childCount ?? 0) >= 1 && addonSubscriptionStatus !== 'active';
   const usernameFormatValid = USERNAME_PATTERN.test(username.trim().toLowerCase());
@@ -137,18 +140,28 @@ export default function ParentAddChild() {
     setSearchParams(next, { replace: true });
   };
 
-  const attemptResumeCreation = async () => {
+  // Only recovers displayName/username from the checkout round-trip. The
+  // password is never stashed, so finishing account creation always requires
+  // the parent to re-enter it below.
+  const checkForPendingChild = async () => {
     const stashed = sessionStorage.getItem(PENDING_CHILD_KEY);
     if (!stashed) return;
-
-    let payload;
     try {
-      payload = JSON.parse(stashed);
+      const { displayName, username } = JSON.parse(stashed);
+      setResumePending({ displayName, username });
     } catch {
       sessionStorage.removeItem(PENDING_CHILD_KEY);
+    }
+  };
+
+  const handleResumeSubmit = async (event) => {
+    event.preventDefault();
+    if (resumePassword !== resumeConfirmPassword) {
+      toast({ title: 'Passwords do not match.', variant: 'destructive' });
       return;
     }
 
+    const payload = { ...resumePending, password: resumePassword };
     setResuming(true);
     setResumeError(null);
 
@@ -157,6 +170,7 @@ export default function ParentAddChild() {
         const result = await db.auth.createChildWithSecondaryApp(payload);
         sessionStorage.removeItem(PENDING_CHILD_KEY);
         setResuming(false);
+        setResumePending(null);
         handleCreated(payload, result);
         toast({ title: 'Payment successful. Child account created.' });
         return;
@@ -167,6 +181,7 @@ export default function ParentAddChild() {
           continue;
         }
         setResuming(false);
+        sessionStorage.removeItem(PENDING_CHILD_KEY);
         setResumeError(err.message || 'Could not finish creating the child account. Please try again.');
         return;
       }
@@ -176,7 +191,7 @@ export default function ParentAddChild() {
   useEffect(() => {
     const checkoutState = searchParams.get('checkout');
     if (checkoutState === 'success') {
-      attemptResumeCreation().finally(clearCheckoutParam);
+      checkForPendingChild().finally(clearCheckoutParam);
     } else if (checkoutState === 'cancelled') {
       sessionStorage.removeItem(PENDING_CHILD_KEY);
       toast({ title: 'Checkout cancelled.' });
@@ -202,7 +217,10 @@ export default function ParentAddChild() {
     if (needsCheckout) {
       setRedirecting(true);
       try {
-        sessionStorage.setItem(PENDING_CHILD_KEY, JSON.stringify(payload));
+        sessionStorage.setItem(
+          PENDING_CHILD_KEY,
+          JSON.stringify({ displayName: payload.displayName, username: payload.username })
+        );
         const { url } = await db.billing.createCheckoutSession(interval, '/parent/add-child', 'addon');
         window.location.href = url;
       } catch (err) {
@@ -259,9 +277,53 @@ export default function ParentAddChild() {
       <div className="max-w-2xl">
         <div className="finn-card border-2 border-red-200 bg-red-50 space-y-3 text-center">
           <p className="text-sm font-bold text-red-700">{resumeError}</p>
-          <Button onClick={attemptResumeCreation} className="w-full">
+          <Button onClick={() => setResumeError(null)} className="w-full">
             Retry
           </Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (resumePending) {
+    return (
+      <div className="max-w-2xl">
+        <div className="finn-card space-y-4">
+          <div>
+            <h2 className="font-extrabold text-slate-800">
+              Finish setting up {resumePending.displayName}'s account
+            </h2>
+            <p className="text-sm text-muted-foreground font-semibold mt-1">
+              Payment successful. Set a password for @{resumePending.username} to finish creating their account.
+            </p>
+          </div>
+          <form className="space-y-4" onSubmit={handleResumeSubmit}>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label htmlFor="resume-password">Password</Label>
+                <Input
+                  id="resume-password"
+                  type="password"
+                  value={resumePassword}
+                  onChange={(event) => setResumePassword(event.target.value)}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="resume-confirm-password">Confirm Password</Label>
+                <Input
+                  id="resume-confirm-password"
+                  type="password"
+                  value={resumeConfirmPassword}
+                  onChange={(event) => setResumeConfirmPassword(event.target.value)}
+                  required
+                />
+              </div>
+            </div>
+            <Button className="w-full" type="submit" disabled={!resumePassword || !resumeConfirmPassword}>
+              Finish creating account
+            </Button>
+          </form>
         </div>
       </div>
     );
