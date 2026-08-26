@@ -408,6 +408,13 @@ const users = {
   },
 };
 
+const requireOwnedChild = async (childId) => {
+  const children = await users.listMyChildren();
+  if (!children.some((c) => c.uid === childId)) {
+    throw new Error('That child does not belong to your family.');
+  }
+};
+
 const transactionApi = {
   list: async () => {
     const { data, error } = await supabase
@@ -516,7 +523,9 @@ const transactionApi = {
       updated_at: new Date().toISOString(),
     };
     if (payload.childId) {
-      row.child_id = String(payload.childId);
+      const childId = String(payload.childId);
+      await requireOwnedChild(childId);
+      row.child_id = childId;
     }
 
     const { data, error } = await supabase.from('transactions').update(row).eq('id', id).select().single();
@@ -597,6 +606,7 @@ const goalApi = {
     if (new Date(endDate).getTime() < new Date(startDate).getTime()) {
       throw new Error('Goal end date must be on or after the start date.');
     }
+    await requireOwnedChild(childId);
 
     const row = {
       child_id: childId,
