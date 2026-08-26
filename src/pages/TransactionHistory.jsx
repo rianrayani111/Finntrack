@@ -108,7 +108,7 @@ export default function TransactionHistory() {
                   </div>
                   <div>
                     <p className="font-extrabold text-slate-800">{transactionReason(t)}</p>
-                    <p className="text-sm text-muted-foreground font-semibold">{new Date(t.date).toLocaleDateString()} · {CATEGORY_LABELS[String(t.category)] || 'Deposit'} · {t.time}</p>
+                    <p className="text-sm text-muted-foreground font-semibold">{parseLocalDate(t.date).toLocaleDateString()} · {CATEGORY_LABELS[String(t.category)] || 'Deposit'} · {t.time}</p>
                     {t.notes && <p className="text-xs text-muted-foreground font-semibold mt-1">Note: {t.notes}</p>}
                   </div>
                 </div>

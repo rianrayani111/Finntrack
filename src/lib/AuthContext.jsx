@@ -14,6 +14,7 @@ const clearAuthState = (setters) => {
   setters.setAddonSubscriptionStatus(null);
   setters.setAddonSubscriptionPeriodEnd(null);
   setters.setChildCount(null);
+  setters.setSubscriptionError(null);
 };
 
 export const AuthProvider = ({ children }) => {
@@ -31,6 +32,7 @@ export const AuthProvider = ({ children }) => {
   const [addonSubscriptionStatus, setAddonSubscriptionStatus] = useState(null);
   const [addonSubscriptionPeriodEnd, setAddonSubscriptionPeriodEnd] = useState(null);
   const [childCount, setChildCount] = useState(null);
+  const [subscriptionError, setSubscriptionError] = useState(null);
 
   const loadSubscriptionStatus = async () => {
     try {
@@ -41,12 +43,14 @@ export const AuthProvider = ({ children }) => {
       setAddonSubscriptionStatus(addonStatus);
       setAddonSubscriptionPeriodEnd(addonCurrentPeriodEnd);
       setChildCount(count);
-    } catch {
-      setBaseSubscriptionStatus(null);
-      setBaseSubscriptionPeriodEnd(null);
-      setAddonSubscriptionStatus(null);
-      setAddonSubscriptionPeriodEnd(null);
-      setChildCount(null);
+      setSubscriptionError(null);
+    } catch (error) {
+      // Deliberately does NOT null the statuses. A transient failure (network
+      // blip, RPC timeout) is "we don't know", not "you aren't subscribed" --
+      // nulling here is what previously dropped a paying family onto the
+      // Subscribe screen. Keep the last known values and record the error so
+      // SubscriptionGate can offer a retry instead of asking them to pay again.
+      setSubscriptionError(error?.message || 'Could not check your subscription status.');
     }
   };
 
@@ -57,7 +61,7 @@ export const AuthProvider = ({ children }) => {
       const currentUser = await db.auth.me();
 
       if (!currentUser) {
-        clearAuthState({ setUser, setProfile, setRole, setIsAuthenticated, setBaseSubscriptionStatus, setBaseSubscriptionPeriodEnd, setAddonSubscriptionStatus, setAddonSubscriptionPeriodEnd, setChildCount });
+        clearAuthState({ setUser, setProfile, setRole, setIsAuthenticated, setBaseSubscriptionStatus, setBaseSubscriptionPeriodEnd, setAddonSubscriptionStatus, setAddonSubscriptionPeriodEnd, setChildCount, setSubscriptionError });
         setAuthChecked(true);
         setIsLoadingAuth(false);
         return null;
@@ -68,12 +72,16 @@ export const AuthProvider = ({ children }) => {
       setProfile(userProfile);
       setRole(userProfile.role);
       setIsAuthenticated(true);
+      // Subscription status must resolve BEFORE authChecked flips, or
+      // SubscriptionGate (which gates on authChecked) renders the "Subscription
+      // required" lockout against a still-null status for a frame or more --
+      // on every single page load, for paying families included.
+      await loadSubscriptionStatus();
       setAuthChecked(true);
       setIsLoadingAuth(false);
-      await loadSubscriptionStatus();
       return userProfile;
     } catch (error) {
-      clearAuthState({ setUser, setProfile, setRole, setIsAuthenticated, setBaseSubscriptionStatus, setBaseSubscriptionPeriodEnd, setAddonSubscriptionStatus, setAddonSubscriptionPeriodEnd, setChildCount });
+      clearAuthState({ setUser, setProfile, setRole, setIsAuthenticated, setBaseSubscriptionStatus, setBaseSubscriptionPeriodEnd, setAddonSubscriptionStatus, setAddonSubscriptionPeriodEnd, setChildCount, setSubscriptionError });
       setAuthError({ type: 'auth_required', message: error.message || 'Authentication required.' });
       setAuthChecked(true);
       setIsLoadingAuth(false);
@@ -119,12 +127,12 @@ export const AuthProvider = ({ children }) => {
       setProfile(userProfile);
       setRole(userProfile.role);
       setIsAuthenticated(true);
-      setAuthChecked(true);
       await loadSubscriptionStatus();
+      setAuthChecked(true);
 
       return { success: true, role: userProfile.role };
     } catch (error) {
-      clearAuthState({ setUser, setProfile, setRole, setIsAuthenticated, setBaseSubscriptionStatus, setBaseSubscriptionPeriodEnd, setAddonSubscriptionStatus, setAddonSubscriptionPeriodEnd, setChildCount });
+      clearAuthState({ setUser, setProfile, setRole, setIsAuthenticated, setBaseSubscriptionStatus, setBaseSubscriptionPeriodEnd, setAddonSubscriptionStatus, setAddonSubscriptionPeriodEnd, setChildCount, setSubscriptionError });
       setAuthChecked(true);
       throw error;
     }
@@ -154,11 +162,11 @@ export const AuthProvider = ({ children }) => {
       setProfile(userProfile);
       setRole(userProfile.role);
       setIsAuthenticated(true);
-      setAuthChecked(true);
       await loadSubscriptionStatus();
+      setAuthChecked(true);
       return { success: true };
     } catch (error) {
-      clearAuthState({ setUser, setProfile, setRole, setIsAuthenticated, setBaseSubscriptionStatus, setBaseSubscriptionPeriodEnd, setAddonSubscriptionStatus, setAddonSubscriptionPeriodEnd, setChildCount });
+      clearAuthState({ setUser, setProfile, setRole, setIsAuthenticated, setBaseSubscriptionStatus, setBaseSubscriptionPeriodEnd, setAddonSubscriptionStatus, setAddonSubscriptionPeriodEnd, setChildCount, setSubscriptionError });
       setAuthChecked(true);
       throw error;
     }
@@ -179,7 +187,7 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async (shouldRedirect = true) => {
     await db.auth.logout();
-    clearAuthState({ setUser, setProfile, setRole, setIsAuthenticated, setBaseSubscriptionStatus, setBaseSubscriptionPeriodEnd, setAddonSubscriptionStatus, setAddonSubscriptionPeriodEnd, setChildCount });
+    clearAuthState({ setUser, setProfile, setRole, setIsAuthenticated, setBaseSubscriptionStatus, setBaseSubscriptionPeriodEnd, setAddonSubscriptionStatus, setAddonSubscriptionPeriodEnd, setChildCount, setSubscriptionError });
     setAuthChecked(true);
 
     if (shouldRedirect && typeof window !== 'undefined') {
@@ -224,6 +232,7 @@ export const AuthProvider = ({ children }) => {
         addonSubscriptionStatus,
         addonSubscriptionPeriodEnd,
         childCount,
+        subscriptionError,
         // The base plan is always required to use the app at all. A family's
         // first child is included free; only a 2nd+ child additionally
         // requires an active addon subscription for the whole family to keep working.

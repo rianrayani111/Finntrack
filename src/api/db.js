@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { todayLocalDateString } from '@/lib/finance';
 
 export const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL,
@@ -246,9 +247,13 @@ const auth = {
   updateMe: async (profile = {}) => {
     const user = await requireCurrentUser();
     const nextDisplayName = String(profile.displayName || '').trim();
+    // An empty payload would send a no-op PATCH that matches zero rows, so
+    // .single() below fails with a raw PostgREST error instead of telling the
+    // user what's actually wrong.
+    if (!nextDisplayName) throw new Error('Display name is required.');
     const { data, error } = await supabase
       .from('profiles')
-      .update(nextDisplayName ? { display_name: nextDisplayName } : {})
+      .update({ display_name: nextDisplayName })
       .eq('id', user.id)
       .select()
       .single();
@@ -452,7 +457,7 @@ const transactionApi = {
         reason,
         location: '',
         notes: String(payload.notes || '').trim(),
-        date: String(payload.date || new Date().toISOString().slice(0, 10)),
+        date: String(payload.date || todayLocalDateString()),
         time: String(payload.time || new Date().toTimeString().slice(0, 5)),
         created_by: 'parent',
       };
@@ -474,7 +479,7 @@ const transactionApi = {
         reason,
         location,
         notes: String(payload.notes || '').trim(),
-        date: String(payload.date || new Date().toISOString().slice(0, 10)),
+        date: String(payload.date || todayLocalDateString()),
         time: String(payload.time || new Date().toTimeString().slice(0, 5)),
         created_by: 'child',
       };
@@ -713,9 +718,13 @@ const requestApi = {
   },
 
   resolve: async (requestId, decision) => {
+    // The payout transaction is dated from the PARENT's clock, not the
+    // database server's (UTC) -- see migration 0014.
     const { data, error } = await supabase.rpc('resolve_request', {
       p_request_id: requestId,
       p_decision: decision,
+      p_date: todayLocalDateString(),
+      p_time: new Date().toTimeString().slice(0, 5),
     });
     if (error) throw new Error(error.message);
     return rowToRequest(Array.isArray(data) ? data[0] : data);
@@ -771,9 +780,12 @@ const taskApi = {
   },
 
   resolve: async (taskId, decision) => {
+    // Payout dated from the parent's clock, not the DB server's -- see 0014.
     const { data, error } = await supabase.rpc('resolve_task', {
       p_task_id: taskId,
       p_decision: decision,
+      p_date: todayLocalDateString(),
+      p_time: new Date().toTimeString().slice(0, 5),
     });
     if (error) throw new Error(error.message);
     return rowToTask(Array.isArray(data) ? data[0] : data);

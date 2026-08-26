@@ -27,7 +27,10 @@ Deno.serve(async (req: Request) => {
       case 'customer.subscription.created':
       case 'customer.subscription.updated':
       case 'customer.subscription.deleted':
-        await upsertFromSubscription(event.data.object as Stripe.Subscription);
+        await upsertFromSubscription(
+          event.data.object as Stripe.Subscription,
+          new Date(event.created * 1000)
+        );
         break;
       default:
         // Event types we don't act on — acknowledge so Stripe doesn't retry.

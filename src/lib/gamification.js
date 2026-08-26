@@ -152,6 +152,19 @@ export const TIERS = {
 const CATEGORY_LIST = ['necessity', 'want', 'asset', 'liability'];
 
 const toDateOnly = (str) => new Date(`${String(str).slice(0, 10)}T00:00:00`);
+
+// Postgres `time` columns come back from PostgREST as "HH:MM:SS", while the
+// entry forms submit "HH:MM". Normalize both to a full local datetime --
+// blindly appending ":00" turned a stored "20:15:00" into the unparseable
+// "…T20:15:00:00", which made every comparison against it silently false.
+const toLocalDateTime = (dateStr, timeStr) => {
+  const parts = String(timeStr || '').trim().split(':');
+  if (parts.length < 2) return null;
+  const [hh, mm, ss = '00'] = parts;
+  const pad = (n) => String(n).padStart(2, '0');
+  const parsed = new Date(`${String(dateStr).slice(0, 10)}T${pad(hh)}:${pad(mm)}:${pad(ss)}`);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+};
 const dayDiff = (a, b) => Math.round((toDateOnly(b) - toDateOnly(a)) / 86400000);
 // Local-time YYYY-MM-DD (never Date#toISOString, which converts to UTC and
 // can shift the calendar day depending on the reader's timezone offset).
@@ -230,14 +243,18 @@ export function buildAchievementContext({ transactions = [], profile = {} } = {}
       const createdDate = new Date(e.createdAt);
       if (formatDateOnly(createdDate) === e.date) sameDayCount += 1;
 
-      const loggedAt = new Date(`${e.date}T${(e.time || '00:00')}:00`);
-      if (Math.abs(createdDate - loggedAt) <= 60 * 60 * 1000) quickLogCount += 1;
+      const loggedAt = toLocalDateTime(e.date, e.time);
+      if (loggedAt && Math.abs(createdDate - loggedAt) <= 60 * 60 * 1000) quickLogCount += 1;
     }
-    const [hh] = String(e.time || '').split(':');
-    const hour = Number(hh);
-    if (Number.isFinite(hour)) {
-      if (hour < 12) morningCount += 1;
-      if (hour >= 18) eveningCount += 1;
+    const timeStr = String(e.time || '').trim();
+    // Number('') is 0, not NaN, so an entry with no time at all would
+    // otherwise be silently counted as hour 0 (i.e. "morning").
+    if (timeStr) {
+      const hour = Number(timeStr.split(':')[0]);
+      if (Number.isFinite(hour)) {
+        if (hour < 12) morningCount += 1;
+        if (hour >= 18) eveningCount += 1;
+      }
     }
   });
 

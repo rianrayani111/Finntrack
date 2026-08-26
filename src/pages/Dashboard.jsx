@@ -23,6 +23,7 @@ import {
   CATEGORY_LABELS,
   transactionType,
   transactionReason,
+  parseLocalDate,
 } from "@/lib/finance";
 import { useCelebrations } from "@/lib/celebrations";
 
@@ -258,7 +259,7 @@ export default function Dashboard() {
                     <div className="min-w-0">
                       <p className="font-bold text-slate-700 truncate">{transactionReason(t)}</p>
                       <p className="text-xs text-muted-foreground font-semibold">
-                        {new Date(t.date).toLocaleDateString("en-US", { month: "short", day: "numeric" })} ·{" "}
+                        {parseLocalDate(t.date).toLocaleDateString("en-US", { month: "short", day: "numeric" })} ·{" "}
                         {CATEGORY_LABELS[String(t.category)] || 'Deposit'}
                       </p>
                     </div>

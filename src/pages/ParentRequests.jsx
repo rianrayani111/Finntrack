@@ -3,7 +3,7 @@ import { Link, useOutletContext } from 'react-router-dom';
 import { db } from '@/api/db';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/components/ui/use-toast';
-import { formatCurrency } from '@/lib/finance';
+import { formatCurrency, parseDateValue } from '@/lib/finance';
 import { ArrowRight, Check, Clock, HandCoins, ListChecks, Receipt, X } from 'lucide-react';
 
 const TYPE_ICONS = {
@@ -32,7 +32,7 @@ const RECENT_WINDOW_DAYS = 7;
 
 const formatDateTime = (isoString) => {
   if (!isoString) return '';
-  return new Date(isoString).toLocaleDateString('en-US', {
+  return parseDateValue(isoString).toLocaleDateString('en-US', {
     month: 'short',
     day: 'numeric',
     year: 'numeric',

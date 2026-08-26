@@ -40,6 +40,15 @@ export function parseLocalDate(dateStr) {
   return new Date(`${String(dateStr).slice(0, 10)}T00:00:00`);
 }
 
+// For values that may be EITHER a full timestamp or a bare date. A timestamptz
+// (createdAt, resolvedAt) carries its own offset and parses correctly on its
+// own; a date-only "YYYY-MM-DD" (a transaction's date, a request's dueDate)
+// does not, and needs local-midnight parsing to avoid displaying a day early.
+export function parseDateValue(value) {
+  const str = String(value);
+  return /^\d{4}-\d{2}-\d{2}$/.test(str) ? parseLocalDate(str) : new Date(value);
+}
+
 // Today's date as a local "YYYY-MM-DD" string. Date#toISOString gives the
 // UTC date, which can already be tomorrow for anyone west of UTC.
 export function todayLocalDateString() {

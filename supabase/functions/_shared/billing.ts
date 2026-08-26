@@ -30,12 +30,31 @@ export type UpsertOutcome =
 // Shared by the stripe-webhook handler (called per incoming event) and the
 // backfill-subscriptions function (called per subscription when reconciling
 // rows that a past webhook failure left stale).
-export async function upsertFromSubscription(subscription: Stripe.Subscription): Promise<UpsertOutcome> {
+export async function upsertFromSubscription(
+  subscription: Stripe.Subscription,
+  eventCreatedAt?: Date
+): Promise<UpsertOutcome> {
   const parentId = subscription.metadata?.parent_id;
   if (!parentId) {
     // Not one of ours (metadata is always set at creation in
     // create-checkout-session) — nothing to do, not an error.
     return { skipped: true, reason: 'no parent_id metadata' };
+  }
+
+  // The parent may have deleted their account. subscriptions.parent_id is a FK
+  // to profiles, so upserting for a deleted parent throws a constraint
+  // violation -> the webhook returns 500 -> Stripe retries for days and can
+  // eventually disable the endpoint, breaking billing sync for every other
+  // family. There is nothing to record for a parent who no longer exists, so
+  // acknowledge and move on instead.
+  const { data: parentProfile } = await supabaseAdmin
+    .from('profiles')
+    .select('id')
+    .eq('id', parentId)
+    .maybeSingle();
+
+  if (!parentProfile) {
+    return { skipped: true, reason: 'parent profile no longer exists', parentId };
   }
 
   // Older subscriptions predate the base/addon split and have no plan_type
@@ -47,7 +66,7 @@ export async function upsertFromSubscription(subscription: Stripe.Subscription):
 
   const { data: existing } = await supabaseAdmin
     .from('subscriptions')
-    .select('stripe_subscription_id, stripe_subscription_created_at')
+    .select('stripe_subscription_id, stripe_subscription_created_at, last_event_at')
     .eq('parent_id', parentId)
     .eq('plan_type', planType)
     .single();
@@ -63,6 +82,15 @@ export async function upsertFromSubscription(subscription: Stripe.Subscription):
     incomingCreated <= new Date(existing.stripe_subscription_created_at)
   ) {
     return { skipped: true, reason: 'superseded by a newer subscription on file', parentId };
+  }
+
+  // The check above only compares DIFFERENT subscriptions. Two events for the
+  // SAME subscription need their own ordering guard, or a delayed/retried
+  // delivery can overwrite newer state with older (a retried 'active' landing
+  // after 'deleted' would restore a canceled family's access). Stripe
+  // subscription objects carry no version, so order by the event's timestamp.
+  if (eventCreatedAt && existing?.last_event_at && eventCreatedAt < new Date(existing.last_event_at)) {
+    return { skipped: true, reason: 'older than the last event applied', parentId };
   }
 
   // current_period_end moved from the subscription object to the subscription
@@ -96,6 +124,9 @@ export async function upsertFromSubscription(subscription: Stripe.Subscription):
         quantity: item.quantity || 1,
         current_period_end: new Date(periodEndSeconds * 1000).toISOString(),
         updated_at: new Date().toISOString(),
+        // Only advanced by real webhook deliveries; the backfill job passes no
+        // event and must not move the watermark forward.
+        ...(eventCreatedAt ? { last_event_at: eventCreatedAt.toISOString() } : {}),
       },
       { onConflict: 'parent_id,plan_type' }
     );

@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Progress } from '@/components/ui/progress';
 import { toast } from '@/components/ui/use-toast';
-import { formatCurrency, currentBalance } from '@/lib/finance';
+import { formatCurrency, currentBalance, todayLocalDateString } from '@/lib/finance';
 import { calculateGoalProgress, GOAL_TYPE_LABELS, timelineLabel } from '@/lib/goals';
 import { CalendarDays, Pencil, Target, Trash2, Trophy } from 'lucide-react';
 
@@ -16,7 +16,7 @@ const emptyForm = {
   title: '',
   goalType: 'save',
   targetAmount: '',
-  startDate: new Date().toISOString().slice(0, 10),
+  startDate: todayLocalDateString(),
   endDate: '',
   reward: '',
 };

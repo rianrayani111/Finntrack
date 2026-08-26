@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from '@/components/ui/use-toast';
-import { formatCurrency } from '@/lib/finance';
+import { formatCurrency, parseDateValue } from '@/lib/finance';
 import { compressImageFile, MAX_PHOTO_DATA_URL_LENGTH } from '@/lib/image';
 import { HandCoins, ListChecks, Receipt, Clock, Camera, X, ArrowRight } from 'lucide-react';
 
@@ -62,7 +62,7 @@ const STATUS_LABELS = {
 
 const formatDateTime = (isoString) => {
   if (!isoString) return '';
-  return new Date(isoString).toLocaleDateString('en-US', {
+  return parseDateValue(isoString).toLocaleDateString('en-US', {
     month: 'short',
     day: 'numeric',
     year: 'numeric',
