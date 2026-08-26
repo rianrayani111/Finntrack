@@ -36,6 +36,7 @@ export default function ParentTasks() {
   const [searchParams] = useSearchParams();
   const highlightedTaskId = searchParams.get('taskId');
   const taskRefs = useRef({});
+  const handledHighlightRef = useRef(null);
   const [children, setChildren] = useState([]);
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -80,8 +81,14 @@ export default function ParentTasks() {
 
   useEffect(() => {
     if (!highlightedTaskId || tasks.length === 0) return;
+    // Only scroll/expand the first time this taskId's target becomes
+    // available — otherwise every later task action re-fetches `tasks`,
+    // which would re-trigger this and undo any manual showHistory toggle
+    // or yank the scroll position again.
+    if (handledHighlightRef.current === highlightedTaskId) return;
     const target = tasks.find((task) => task.id === highlightedTaskId);
     if (!target) return;
+    handledHighlightRef.current = highlightedTaskId;
     if (target.status === 'approved' || target.status === 'declined') {
       setShowHistory(true);
     }

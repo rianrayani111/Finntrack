@@ -38,6 +38,7 @@ export default function ParentGoals() {
   const [transactions, setTransactions] = useState([]);
   const [goals, setGoals] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
   const [saving, setSaving] = useState(false);
   const [deletingGoalId, setDeletingGoalId] = useState(null);
   const [editingGoal, setEditingGoal] = useState(null);
@@ -61,6 +62,9 @@ export default function ParentGoals() {
             childId: prev.childId || nextChildren[0].uid,
           }));
         }
+      })
+      .catch((error) => {
+        setLoadError(error.message || 'Could not load your goals. Please refresh and try again.');
       })
       .finally(() => setLoading(false));
   }, []);
@@ -126,6 +130,11 @@ export default function ParentGoals() {
 
     if (!form.childId) {
       toast({ title: 'Please choose a child.', variant: 'destructive' });
+      return;
+    }
+
+    if (form.startDate && form.endDate && new Date(form.endDate) < new Date(form.startDate)) {
+      toast({ title: 'End date must be on or after the start date.', variant: 'destructive' });
       return;
     }
 
@@ -198,6 +207,15 @@ export default function ParentGoals() {
     return (
       <div className="flex justify-center py-20">
         <div className="w-8 h-8 border-4 border-sky-200 border-t-sky-600 rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div className="finn-card text-center py-10">
+        <p className="text-slate-700 font-bold">Could not load goals</p>
+        <p className="text-sm text-muted-foreground font-semibold mt-1">{loadError}</p>
       </div>
     );
   }
@@ -297,6 +315,7 @@ export default function ParentGoals() {
                 id="end-date"
                 type="date"
                 value={form.endDate}
+                min={form.startDate || undefined}
                 onChange={(event) => handleInputChange('endDate', event.target.value)}
                 required
               />

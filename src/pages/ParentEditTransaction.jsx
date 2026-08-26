@@ -32,7 +32,7 @@ export default function ParentEditTransaction() {
       .then((txn) => {
         if (!txn) {
           toast({ title: 'Transaction not found.', variant: 'destructive' });
-          navigate('/parent/alerts');
+          navigate(-1);
           return;
         }
 
@@ -51,7 +51,7 @@ export default function ParentEditTransaction() {
           description: error.message || 'Please try again.',
           variant: 'destructive',
         });
-        navigate('/parent/alerts');
+        navigate(-1);
       })
       .finally(() => setLoading(false));
   }, [navigate, transactionId]);
@@ -87,7 +87,7 @@ export default function ParentEditTransaction() {
       });
 
       toast({ title: 'Transaction updated.' });
-      navigate('/parent/alerts');
+      navigate(-1);
     } catch (error) {
       toast({
         title: 'Something went wrong',

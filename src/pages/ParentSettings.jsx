@@ -78,11 +78,13 @@ export default function ParentSettings() {
 
   const [children, setChildren] = useState([]);
   const [loadingChildren, setLoadingChildren] = useState(true);
+  const [childrenLoadError, setChildrenLoadError] = useState("");
 
   const [childPasswordTarget, setChildPasswordTarget] = useState(null);
   const [childNewPassword, setChildNewPassword] = useState("");
   const [childConfirmPassword, setChildConfirmPassword] = useState("");
-  const [showChildPassword, setShowChildPassword] = useState(false);
+  const [showChildNewPassword, setShowChildNewPassword] = useState(false);
+  const [showChildConfirmPassword, setShowChildConfirmPassword] = useState(false);
   const [savingChildPassword, setSavingChildPassword] = useState(false);
 
   const [deletingAccount, setDeletingAccount] = useState(false);
@@ -97,6 +99,9 @@ export default function ParentSettings() {
     db.users
       .listMyChildren()
       .then((docs) => setChildren(docs || []))
+      .catch((error) => {
+        setChildrenLoadError(error.message || "Could not load your children. Please refresh and try again.");
+      })
       .finally(() => setLoadingChildren(false));
   }, []);
 
@@ -140,7 +145,8 @@ export default function ParentSettings() {
     setChildPasswordTarget(child);
     setChildNewPassword("");
     setChildConfirmPassword("");
-    setShowChildPassword(false);
+    setShowChildNewPassword(false);
+    setShowChildConfirmPassword(false);
   };
 
   const handleChangeChildPassword = async (e) => {
@@ -286,6 +292,8 @@ export default function ParentSettings() {
 
         {loadingChildren ? (
           <p className="text-sm text-muted-foreground font-semibold">Loading...</p>
+        ) : childrenLoadError ? (
+          <p className="text-sm text-red-600 font-semibold">{childrenLoadError}</p>
         ) : children.length === 0 ? (
           <p className="text-sm text-muted-foreground font-semibold">No child accounts yet.</p>
         ) : (
@@ -321,8 +329,8 @@ export default function ParentSettings() {
                           id="child-new-password"
                           value={childNewPassword}
                           onChange={(e) => setChildNewPassword(e.target.value)}
-                          show={showChildPassword}
-                          onToggleShow={() => setShowChildPassword((v) => !v)}
+                          show={showChildNewPassword}
+                          onToggleShow={() => setShowChildNewPassword((v) => !v)}
                           autoComplete="new-password"
                         />
                       </div>
@@ -332,8 +340,8 @@ export default function ParentSettings() {
                           id="child-confirm-password"
                           value={childConfirmPassword}
                           onChange={(e) => setChildConfirmPassword(e.target.value)}
-                          show={showChildPassword}
-                          onToggleShow={() => setShowChildPassword((v) => !v)}
+                          show={showChildConfirmPassword}
+                          onToggleShow={() => setShowChildConfirmPassword((v) => !v)}
                           autoComplete="new-password"
                         />
                       </div>
