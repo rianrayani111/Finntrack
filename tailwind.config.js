@@ -91,5 +91,10 @@ module.exports = {
   		}
   	}
   },
-  plugins: [require("tailwindcss-animate")],
+  // @tailwindcss/typography backs the `prose`/`prose-*` classes the Terms page
+  // uses to style the rendered legal-pack markdown. Without it every prose-*
+  // class silently compiles to nothing and, because preflight strips the
+  // browser's default heading/list/table styles, the whole document renders as
+  // one undifferentiated wall of text.
+  plugins: [require("tailwindcss-animate"), require("@tailwindcss/typography")],
 }

@@ -93,7 +93,7 @@ export default function Dashboard() {
   const { celebrateGains } = useCelebrations();
 
   useEffect(() => {
-    db.entities.Transaction.list("-date", 500)
+    db.entities.Transaction.list()
       .then((items) => setTransactions(items || []))
       .catch((error) => {
         setLoadError(error.message || "Could not load your money. Please refresh and try again.");

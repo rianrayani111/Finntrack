@@ -20,9 +20,16 @@ npx skills add base44/skills
 ## Key Files
 
 - `src/`: frontend application source.
-- `src/api/base44Client.js`: frontend Base44 SDK client.
+- `src/api/db.js`: Supabase client plus the app's entire data layer (auth, users, transactions, goals, requests, tasks, alerts, billing).
+- `supabase/migrations/`: schema, RLS policies, and the SECURITY DEFINER functions that own every privileged write.
+- `supabase/functions/`: Deno edge functions (child accounts, Stripe checkout/portal/webhook, account deletion).
 - `vite.config.js`: Vite config and Base44 Vite plugin setup.
 - `.env.local`: local-only environment values; never commit secrets.
+
+Note: the backend is Supabase, not Firebase. `firestore.rules` at the repo root
+is a leftover from an earlier backend and is not enforced anywhere — do not
+treat it as this app's authorization model; `supabase/migrations/` holds the
+real RLS policies.
 
 ## Working Notes
 

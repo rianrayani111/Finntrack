@@ -123,7 +123,7 @@ export default function ParentAddMoney() {
             <Input
               id="amount"
               type="number"
-              min="0"
+              min="0.01"
               step="0.01"
               required
               value={amount}

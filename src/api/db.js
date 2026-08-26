@@ -156,13 +156,29 @@ const auth = {
     return Boolean(session);
   },
 
+  // Returns null ONLY when the caller is genuinely signed out (no session) or
+  // has no profile row. Anything else — a network failure, a 5xx — throws, so
+  // callers can tell "you are logged out" apart from "we couldn't ask".
+  // Returning null for both is what previously let one failed request during a
+  // routine background re-check log an active user out.
   me: async () => {
     const {
       data: { user },
+      error: userError,
     } = await supabase.auth.getUser();
+    if (userError) throw new Error(userError.message || 'Could not verify your session.');
     if (!user) return null;
 
-    const { data: row } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+    const { data: row, error: profileError } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', user.id)
+      .single();
+    // PGRST116 is PostgREST's "no rows returned" for .single() — a real missing
+    // profile, not a failure to reach the database.
+    if (profileError && profileError.code !== 'PGRST116') {
+      throw new Error(profileError.message || 'Could not load your profile.');
+    }
     if (!row) return null;
     const profile = rowToProfile(row);
 

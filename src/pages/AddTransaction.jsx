@@ -112,7 +112,7 @@ export default function AddTransaction() {
                   id="amount"
                   type="number"
                   step="0.01"
-                  min="0"
+                  min="0.01"
                   placeholder="0.00"
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}

@@ -61,6 +61,8 @@ export const AuthProvider = ({ children }) => {
       const currentUser = await db.auth.me();
 
       if (!currentUser) {
+        // Genuinely signed out (no session, or no profile row) — as opposed to
+        // the catch below, which can also fire for a transient network failure.
         clearAuthState({ setUser, setProfile, setRole, setIsAuthenticated, setBaseSubscriptionStatus, setBaseSubscriptionPeriodEnd, setAddonSubscriptionStatus, setAddonSubscriptionPeriodEnd, setChildCount, setSubscriptionError });
         setAuthChecked(true);
         setIsLoadingAuth(false);
@@ -81,8 +83,23 @@ export const AuthProvider = ({ children }) => {
       setIsLoadingAuth(false);
       return userProfile;
     } catch (error) {
-      clearAuthState({ setUser, setProfile, setRole, setIsAuthenticated, setBaseSubscriptionStatus, setBaseSubscriptionPeriodEnd, setAddonSubscriptionStatus, setAddonSubscriptionPeriodEnd, setChildCount, setSubscriptionError });
-      setAuthError({ type: 'auth_required', message: error.message || 'Authentication required.' });
+      // A re-check that throws is "we couldn't ask", not "you are signed out".
+      // checkUserAuth re-runs on every onAuthStateChange (token refresh, another
+      // tab, tab refocus), so clearing state here unconditionally meant a single
+      // network blip mid-session logged an already-authenticated user out and
+      // bounced them to /login via ProtectedRoute. Only drop the session if we
+      // don't have one yet; otherwise keep what we have and surface the error.
+      const stillHaveSession = await db.auth
+        .isAuthenticated()
+        .catch(() => false);
+
+      if (!stillHaveSession) {
+        clearAuthState({ setUser, setProfile, setRole, setIsAuthenticated, setBaseSubscriptionStatus, setBaseSubscriptionPeriodEnd, setAddonSubscriptionStatus, setAddonSubscriptionPeriodEnd, setChildCount, setSubscriptionError });
+        setAuthError({ type: 'auth_required', message: error.message || 'Authentication required.' });
+      } else {
+        setAuthError({ type: 'auth_check_failed', message: error.message || 'Could not refresh your session.' });
+      }
+
       setAuthChecked(true);
       setIsLoadingAuth(false);
       return null;

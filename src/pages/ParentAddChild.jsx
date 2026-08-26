@@ -20,6 +20,11 @@ import {
 import { Trash2 } from 'lucide-react';
 
 const USERNAME_PATTERN = /^[a-z0-9_]{3,20}$/;
+// Matches what the create-child-account / update-child-password edge functions
+// enforce. Checked here too so a short password fails in the form instead of
+// after a round-trip — which matters most in the post-checkout resume flow
+// below, where a rejected attempt discards the stashed pending child.
+const MIN_PASSWORD_LENGTH = 6;
 const PENDING_CHILD_KEY = 'finntrack_pending_child';
 const RESUME_MAX_ATTEMPTS = 10;
 const RESUME_RETRY_DELAY_MS = 1500;
@@ -37,6 +42,7 @@ export default function ParentAddChild() {
 
   const [children, setChildren] = useState([]);
   const [loadingChildren, setLoadingChildren] = useState(true);
+  const [childrenLoadError, setChildrenLoadError] = useState('');
   const [deletingId, setDeletingId] = useState(null);
 
   const [showForm, setShowForm] = useState(false);
@@ -45,6 +51,7 @@ export default function ParentAddChild() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [usernameAvailable, setUsernameAvailable] = useState(null);
+  const [usernameCheckError, setUsernameCheckError] = useState(false);
   const [checkingUsername, setCheckingUsername] = useState(false);
   const [interval, setInterval_] = useState('month');
   const [saving, setSaving] = useState(false);
@@ -65,7 +72,7 @@ export default function ParentAddChild() {
       displayName.trim() &&
       username.trim() &&
       usernameFormatValid &&
-      password &&
+      password.length >= MIN_PASSWORD_LENGTH &&
       confirmPassword &&
       password === confirmPassword &&
       usernameAvailable === true
@@ -77,6 +84,12 @@ export default function ParentAddChild() {
     try {
       const docs = await db.users.listMyChildren();
       setChildren(docs || []);
+      setChildrenLoadError('');
+    } catch (error) {
+      // Without this the rejection was unhandled and the list fell through to
+      // "No child accounts yet." — telling a parent who has children that they
+      // have none, and offering to bill them for a "first child" they already own.
+      setChildrenLoadError(error.message || 'Could not load your children. Please refresh and try again.');
     } finally {
       setLoadingChildren(false);
     }
@@ -96,12 +109,19 @@ export default function ParentAddChild() {
     let isActive = true;
     setCheckingUsername(true);
     setUsernameAvailable(null);
+    setUsernameCheckError(false);
 
     db.users
       .checkUsernameAvailability(cleanUsername)
       .then((result) => {
         if (!isActive) return;
         setUsernameAvailable(Boolean(result?.available));
+      })
+      .catch(() => {
+        // Without this the rejection was unhandled and the hint stayed on
+        // "Type a username to check availability" forever, with the submit
+        // button permanently disabled and no explanation.
+        if (isActive) setUsernameCheckError(true);
       })
       .finally(() => {
         if (isActive) {
@@ -157,6 +177,14 @@ export default function ParentAddChild() {
 
   const handleResumeSubmit = async (event) => {
     event.preventDefault();
+    if (resumePassword.length < MIN_PASSWORD_LENGTH) {
+      toast({
+        title: 'Password too short',
+        description: `Use at least ${MIN_PASSWORD_LENGTH} characters.`,
+        variant: 'destructive',
+      });
+      return;
+    }
     if (resumePassword !== resumeConfirmPassword) {
       toast({ title: 'Passwords do not match.', variant: 'destructive' });
       return;
@@ -204,6 +232,14 @@ export default function ParentAddChild() {
   const handleSubmit = async (event) => {
     event.preventDefault();
 
+    if (password.length < MIN_PASSWORD_LENGTH) {
+      toast({
+        title: 'Password too short',
+        description: `Use at least ${MIN_PASSWORD_LENGTH} characters.`,
+        variant: 'destructive',
+      });
+      return;
+    }
     if (password !== confirmPassword) {
       toast({ title: 'Passwords do not match.', variant: 'destructive' });
       return;
@@ -307,8 +343,12 @@ export default function ParentAddChild() {
                   type="password"
                   value={resumePassword}
                   onChange={(event) => setResumePassword(event.target.value)}
+                  minLength={MIN_PASSWORD_LENGTH}
                   required
                 />
+                <p className="text-xs font-semibold text-muted-foreground">
+                  At least {MIN_PASSWORD_LENGTH} characters.
+                </p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="resume-confirm-password">Confirm Password</Label>
@@ -321,7 +361,11 @@ export default function ParentAddChild() {
                 />
               </div>
             </div>
-            <Button className="w-full" type="submit" disabled={!resumePassword || !resumeConfirmPassword}>
+            <Button
+              className="w-full"
+              type="submit"
+              disabled={resumePassword.length < MIN_PASSWORD_LENGTH || !resumeConfirmPassword}
+            >
               Finish creating account
             </Button>
           </form>
@@ -397,6 +441,8 @@ export default function ParentAddChild() {
                   ? 'Usernames can only contain lowercase letters, numbers, and underscores (3-20 characters). Do not use an email address.'
                   : checkingUsername
                   ? 'Checking username...'
+                  : usernameCheckError
+                  ? 'Could not check that username right now. Please try again.'
                   : usernameAvailable === null
                   ? 'Type a username to check availability.'
                   : usernameAvailable
@@ -413,8 +459,12 @@ export default function ParentAddChild() {
                   type="password"
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
+                  minLength={MIN_PASSWORD_LENGTH}
                   required
                 />
+                <p className="text-xs font-semibold text-muted-foreground">
+                  At least {MIN_PASSWORD_LENGTH} characters.
+                </p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="confirmPassword">Confirm Password</Label>
@@ -486,6 +536,8 @@ export default function ParentAddChild() {
 
         {loadingChildren ? (
           <p className="text-sm text-muted-foreground font-semibold mt-4">Loading...</p>
+        ) : childrenLoadError ? (
+          <p className="text-sm text-red-600 font-semibold mt-4">{childrenLoadError}</p>
         ) : children.length === 0 ? (
           <p className="text-sm text-muted-foreground font-semibold mt-4">No child accounts yet.</p>
         ) : (

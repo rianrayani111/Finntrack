@@ -12,6 +12,18 @@ Deno.serve(async (req: Request) => {
   try {
     const { uid: parentUid } = await requireParent(req);
 
+    // The base plan is required to use the app at all. SubscriptionGate already
+    // blocks this in the UI, but that is a client-side check on a client-callable
+    // endpoint -- without this, a parent whose base plan never started (or has
+    // lapsed) could still create their "free" first child by calling the
+    // function directly.
+    if (!(await hasActiveSubscription(parentUid, 'base'))) {
+      throw new HttpError(
+        402,
+        'An active FinnTrack subscription is required before adding a child.'
+      );
+    }
+
     // A parent's first child is free. Every child after that requires an
     // active subscription (checked before creating the auth user so we don't
     // have to unwind a half-created account on a 402).

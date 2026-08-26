@@ -8,6 +8,7 @@ export default function Achievements() {
   const [profile, setProfile] = useState(null);
   const [earnedKeys, setEarnedKeys] = useState(new Set());
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
   const [pickerOpen, setPickerOpen] = useState(false);
   const { celebrateGains } = useCelebrations();
 
@@ -20,6 +21,10 @@ export default function Achievements() {
         setProfile(nextProfile);
         setEarnedKeys(nextEarnedKeys);
         celebrateGains({ prevXp, newXp, newlyEarnedKeys: newlyEarned });
+      })
+      .catch((error) => {
+        if (cancelled) return;
+        setLoadError(error.message || "Could not load your achievements. Please refresh and try again.");
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -34,6 +39,20 @@ export default function Achievements() {
     return (
       <div className="flex justify-center py-20">
         <div className="w-8 h-8 border-4 border-sky-200 border-t-sky-600 rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  // Without this the panel below would render against a null profile — a
+  // confident "Level 1 · 0 badges", which reads as losing every badge earned
+  // rather than as a failed load.
+  if (loadError || !profile) {
+    return (
+      <div className="finn-card text-center py-10">
+        <p className="text-slate-700 font-bold">Could not load your achievements</p>
+        <p className="text-sm text-muted-foreground font-semibold mt-1">
+          {loadError || "Please refresh and try again."}
+        </p>
       </div>
     );
   }

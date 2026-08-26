@@ -33,6 +33,7 @@ export default function Tasks() {
   const [searchParams] = useSearchParams();
   const highlightedTaskId = searchParams.get('taskId');
   const taskRefs = useRef({});
+  const handledHighlightRef = useRef(null);
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showHistory, setShowHistory] = useState(false);
@@ -65,8 +66,14 @@ export default function Tasks() {
 
   useEffect(() => {
     if (!highlightedTaskId || tasks.length === 0) return;
+    // Only scroll/expand the first time this taskId's target becomes available.
+    // Every task action re-fetches `tasks`, which would otherwise re-trigger
+    // this — undoing a manual showHistory toggle and yanking the scroll
+    // position back to the highlighted card after each submit.
+    if (handledHighlightRef.current === highlightedTaskId) return;
     const target = tasks.find((task) => task.id === highlightedTaskId);
     if (!target) return;
+    handledHighlightRef.current = highlightedTaskId;
     if (target.status === 'approved' || target.status === 'declined') {
       setShowHistory(true);
     }

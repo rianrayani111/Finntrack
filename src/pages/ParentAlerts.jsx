@@ -10,6 +10,7 @@ export default function ParentAlerts() {
   const { refreshUnreadAlertCount } = useOutletContext() || {};
   const [alerts, setAlerts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
 
   const loadAlerts = async () => {
     const docs = await db.alerts.list();
@@ -17,7 +18,11 @@ export default function ParentAlerts() {
   };
 
   useEffect(() => {
-    loadAlerts().finally(() => setLoading(false));
+    loadAlerts()
+      .catch((error) => {
+        setLoadError(error.message || 'Could not load your alerts. Please refresh and try again.');
+      })
+      .finally(() => setLoading(false));
   }, []);
 
   const unreadCount = useMemo(() => alerts.filter((alert) => !alert.read).length, [alerts]);
@@ -59,6 +64,18 @@ export default function ParentAlerts() {
     return (
       <div className="flex justify-center py-20">
         <div className="w-8 h-8 border-4 border-sky-200 border-t-sky-600 rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  // Checked ahead of the empty state: a failed fetch also produces zero alerts,
+  // and "No alerts yet" would tell a parent nothing has happened when in fact
+  // we simply could not look.
+  if (loadError) {
+    return (
+      <div className="finn-card text-center py-10">
+        <p className="text-slate-700 font-bold">Could not load your alerts</p>
+        <p className="text-sm text-muted-foreground font-semibold mt-1">{loadError}</p>
       </div>
     );
   }

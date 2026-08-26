@@ -11,7 +11,10 @@ import { formatCurrency, currentBalance, todayLocalDateString } from '@/lib/fina
 import { calculateGoalProgress, GOAL_TYPE_LABELS, timelineLabel } from '@/lib/goals';
 import { CalendarDays, Pencil, Target, Trash2, Trophy } from 'lucide-react';
 
-const emptyForm = {
+// A function, not a module-level constant: evaluating todayLocalDateString()
+// once at import time meant a tab left open overnight defaulted new goals to
+// yesterday's date.
+const makeEmptyForm = () => ({
   childId: '',
   title: '',
   goalType: 'save',
@@ -19,7 +22,7 @@ const emptyForm = {
   startDate: todayLocalDateString(),
   endDate: '',
   reward: '',
-};
+});
 
 const statusStyles = {
   completed: 'bg-emerald-100 text-emerald-700',
@@ -42,7 +45,7 @@ export default function ParentGoals() {
   const [saving, setSaving] = useState(false);
   const [deletingGoalId, setDeletingGoalId] = useState(null);
   const [editingGoal, setEditingGoal] = useState(null);
-  const [form, setForm] = useState(emptyForm);
+  const [form, setForm] = useState(makeEmptyForm);
 
   useEffect(() => {
     Promise.all([
@@ -98,7 +101,7 @@ export default function ParentGoals() {
   const resetForm = () => {
     setEditingGoal(null);
     setForm({
-      ...emptyForm,
+      ...makeEmptyForm(),
       childId: children[0]?.uid || '',
     });
   };

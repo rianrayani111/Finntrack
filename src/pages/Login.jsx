@@ -12,6 +12,15 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import usePageMeta from "@/hooks/usePageMeta";
 
+// Supabase's email OTP length is a project-level setting (6 by default, up to
+// 10). The form used to render 8 slots AND hard-require exactly 8 characters
+// before enabling submit, so if the project is on the default 6 the code can
+// never be submitted and parent signup is impossible. Accept anything in the
+// supported range instead: correct for whatever the project is configured to
+// send, and the server is the thing that actually validates the code.
+const OTP_MIN_LENGTH = 6;
+const OTP_MAX_LENGTH = 8;
+
 const VIEW = {
   CHILD_LOGIN: 'child_login',
   PARENT_LOGIN: 'parent_login',
@@ -125,9 +134,21 @@ export default function Login() {
     try {
       await verifyParentSignup(signupEmail, otpCode);
       window.location.assign('/parent');
-    } catch {
-      setOtpCode("");
-      setError({ id: Date.now(), message: 'Incorrect pin has been entered, please try again.' });
+    } catch (err) {
+      // Only a genuine rejection of the code means "wrong pin". Reporting a
+      // network/server failure the same way told the parent their correct code
+      // was wrong, and wiped what they had typed.
+      const message = String(err?.message || '');
+      const isBadCode = /token|otp|code|expired|invalid/i.test(message);
+      if (isBadCode) {
+        setOtpCode("");
+        setError({ id: Date.now(), message: 'Incorrect pin has been entered, please try again.' });
+      } else {
+        setError({
+          id: Date.now(),
+          message: message || 'Could not verify your code right now. Please try again.',
+        });
+      }
       setLoading(false);
     }
   };
@@ -558,22 +579,17 @@ export default function Login() {
           )}
 
           <p className="text-sm text-muted-foreground font-semibold text-center mb-5">
-            We sent an 8-digit code to <span className="text-slate-700">{signupEmail}</span>. Enter it below to
+            We sent a verification code to <span className="text-slate-700">{signupEmail}</span>. Enter it below to
             finish creating your account.
           </p>
 
           <form onSubmit={handleVerifyParentOtp} className="space-y-4">
             <div className="flex justify-center">
-              <InputOTP maxLength={8} value={otpCode} onChange={setOtpCode} autoFocus>
+              <InputOTP maxLength={OTP_MAX_LENGTH} value={otpCode} onChange={setOtpCode} autoFocus>
                 <InputOTPGroup>
-                  <InputOTPSlot index={0} />
-                  <InputOTPSlot index={1} />
-                  <InputOTPSlot index={2} />
-                  <InputOTPSlot index={3} />
-                  <InputOTPSlot index={4} />
-                  <InputOTPSlot index={5} />
-                  <InputOTPSlot index={6} />
-                  <InputOTPSlot index={7} />
+                  {Array.from({ length: OTP_MAX_LENGTH }, (_, index) => (
+                    <InputOTPSlot key={index} index={index} />
+                  ))}
                 </InputOTPGroup>
               </InputOTP>
             </div>
@@ -581,7 +597,7 @@ export default function Login() {
             <Button
               type="submit"
               className="w-full h-12 rounded-2xl bg-sky-500 hover:bg-sky-600 text-white font-bold text-base"
-              disabled={loading || otpCode.length !== 8}
+              disabled={loading || otpCode.length < OTP_MIN_LENGTH}
             >
               {loading ? (
                 <>

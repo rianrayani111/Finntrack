@@ -17,7 +17,7 @@ export default function MonthlySummary() {
   const [month, setMonth] = useState(new Date().getMonth());
 
   useEffect(() => {
-    db.entities.Transaction.list("-date", 500)
+    db.entities.Transaction.list()
       .then((items) => setTransactions(items || []))
       .catch((error) => {
         setLoadError(error.message || "Could not load your summary. Please refresh and try again.");
@@ -33,19 +33,13 @@ export default function MonthlySummary() {
   const currentMonth = currentDate.getMonth();
   const hasAnyData = transactions.length > 0;
 
+  // Computed from the current values rather than nesting setYear inside the
+  // setMonth updater: updaters must be pure and React may run them twice (it
+  // does under StrictMode), which would step the year by 2 on a year boundary.
   const shiftMonth = (delta) => {
-    setMonth((prevMonth) => {
-      const nextMonth = prevMonth + delta;
-      if (nextMonth < 0) {
-        setYear((prevYear) => prevYear - 1);
-        return 11;
-      }
-      if (nextMonth > 11) {
-        setYear((prevYear) => prevYear + 1);
-        return 0;
-      }
-      return nextMonth;
-    });
+    const absolute = year * 12 + month + delta;
+    setYear(Math.floor(absolute / 12));
+    setMonth(((absolute % 12) + 12) % 12);
   };
 
   const monthLabel = new Date(year, month).toLocaleDateString("en-US", {

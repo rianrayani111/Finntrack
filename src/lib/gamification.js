@@ -421,7 +421,7 @@ export function buildAchievementContext({ transactions = [], profile = {} } = {}
 export const BADGES = [
   // STARTER — 100 XP
   { key: 'starter__first_entry', tier: 'starter', title: 'First Entry', description: 'Logging your very first entry', icon: Sparkles, check: (c) => c.entryCount >= 1 },
-  { key: 'starter__ledger_opened', tier: 'starter', title: 'Ledger Opened', description: 'Completing your profile setup', icon: BookOpenCheck, check: (c) => c.streakCount >= 1 },
+  { key: 'starter__ledger_opened', tier: 'starter', title: 'Ledger Opened', description: 'Opening FinnTrack for the first time', icon: BookOpenCheck, check: (c) => c.streakCount >= 1 },
   { key: 'starter__four_corners', tier: 'starter', title: 'Four Corners', description: 'Using all four categories at least once', icon: Grid3x3, check: (c) => c.categoriesUsedCount >= 4 },
   { key: 'starter__summary_reader', tier: 'starter', title: 'Summary Reader', description: 'Opening your monthly summary for the first time', icon: CalendarRange, check: (c) => c.summaryViewsCount >= 1 },
   { key: 'starter__same_day', tier: 'starter', title: 'Same Day', description: 'Logging something the day it happened', icon: CalendarCheck, check: (c) => c.sameDayCount >= 1 },
@@ -453,16 +453,27 @@ export const BADGES = [
 
   // REGULAR — 350 XP
   { key: 'regular__week_watcher', tier: 'regular', title: 'Week Watcher', description: 'Logging every day for a week', icon: CalendarClock, check: (c) => c.longestStreak >= 7 },
-  { key: 'regular__full_month', tier: 'regular', title: 'Full Month', description: 'Completing your first full month', icon: CalendarRange, check: (c) => c.accountAgeDays >= 30 },
+  // Account age alone isn't "completing a month" — an account that sat untouched
+  // for 30 days used to earn this. Requires having actually logged something.
+  { key: 'regular__full_month', tier: 'regular', title: 'Full Month', description: 'Using FinnTrack for a full month', icon: CalendarRange, check: (c) => c.accountAgeDays >= 30 && c.entryCount >= 1 },
   { key: 'regular__sorted', tier: 'regular', title: 'Sorted', description: 'Categorising 25 entries', icon: ClipboardList, check: (c) => c.entryCount >= 25 },
   { key: 'regular__quick_logger', tier: 'regular', title: 'Quick Logger', description: 'Logging within an hour of spending, 10 times', icon: Timer, check: (c) => c.quickLogCount >= 10 },
   { key: 'regular__nothing_spent', tier: 'regular', title: 'Nothing Spent', description: 'A full week with no withdrawals', icon: ShieldCheck, check: (c) => c.hasEmptyWeek },
   { key: 'regular__kept_it', tier: 'regular', title: 'Kept It', description: 'Ending a month with money left over', icon: PiggyBank, check: (c) => c.completedMonths.some((m) => m.net > 0) },
-  { key: 'regular__balanced_books', tier: 'regular', title: 'Balanced Books', description: 'Logging every day for 7 days straight', icon: CheckCircle2, check: (c) => c.longestStreak >= 7 },
+  // Was a second streak >= 7 check, identical to Week Watcher above — both fired
+  // at once for the same act and paid 350 XP each. Now rewards seeing both sides
+  // of the ledger, which is what the name describes.
+  { key: 'regular__balanced_books', tier: 'regular', title: 'Balanced Books', description: 'Tracking 5 deposits and 5 withdrawals', icon: CheckCircle2, check: (c) => c.deposits.length >= 5 && c.entryCount >= 5 },
   { key: 'regular__fifty_tracked', tier: 'regular', title: 'Fifty Tracked', description: 'Tracking $50 in total spending', icon: Coins, check: (c) => c.totalTracked >= 50 },
-  { key: 'regular__balance_sheet_basics', tier: 'regular', title: 'Balance Sheet Basics', description: 'Learning what all four categories mean', icon: BookOpenText, check: (c) => c.categoriesUsedCount >= 4 },
-  { key: 'regular__twenty_five', tier: 'regular', title: 'Twenty Five', description: 'Logging 25 entries', icon: Hash, check: (c) => c.entryCount >= 25 },
-  { key: 'regular__two_weeks_running', tier: 'regular', title: 'Two Weeks Running', description: 'A 14-day logging streak', icon: Repeat, check: (c) => c.longestStreak >= 14 },
+  // Second rung of the category-depth ladder: Four Corners (1 in each) ->
+  // Balance Sheet Basics (3 each) -> Master Sorter (15 each) -> Category Master
+  // (25 each). Previously a duplicate of Four Corners' "used all four once".
+  { key: 'regular__balance_sheet_basics', tier: 'regular', title: 'Balance Sheet Basics', description: '3 entries in each of the four categories', icon: BookOpenText, check: (c) => CATEGORY_LIST.every((cat) => c.categoryCounts[cat] >= 3) },
+  // Was a duplicate of Sorted (25 entries); now counts distinct days instead.
+  { key: 'regular__twenty_five', tier: 'regular', title: 'Twenty Five', description: 'Logging on 25 separate days', icon: Hash, check: (c) => c.distinctDatesLogged >= 25 },
+  // Was a duplicate of Fortnight's 14-day streak; now a weekly-cadence badge,
+  // matching its name and distinct from the daily-streak ladder.
+  { key: 'regular__two_weeks_running', tier: 'regular', title: 'Two Weeks Running', description: 'Logging in two different weeks in a row', icon: Repeat, check: (c) => c.longestWeeklyStreak >= 2 },
   { key: 'regular__location_logger', tier: 'regular', title: 'Location Logger', description: 'Filling in location on 15 entries', icon: Compass, check: (c) => c.entries.filter((e) => String(e.location || '').trim()).length >= 15 },
   { key: 'regular__honest_ledger', tier: 'regular', title: 'Honest Ledger', description: 'Logging an entry you could have skipped', icon: ShieldHalf, check: (c) => c.hasHonestEntry },
   { key: 'regular__month_complete', tier: 'regular', title: 'Month Complete', description: 'Every day of a calendar month accounted for', icon: CalendarCheck, check: (c) => c.monthsFullyAccounted >= 1 },
@@ -488,7 +499,9 @@ export const BADGES = [
   // RARE — 1000 XP
   { key: 'rare__month_of_mondays', tier: 'rare', title: 'Month of Mondays', description: 'Logging every Monday for a month', icon: BadgeCheck, check: (c) => c.monthsEveryMonday >= 1 },
   { key: 'rare__never_missed', tier: 'rare', title: 'Never Missed', description: 'A 30-day streak', icon: TrendingUp, check: (c) => c.longestStreak >= 30 },
-  { key: 'rare__master_sorter', tier: 'rare', title: 'Master Sorter', description: 'Categorising 100 entries', icon: ClipboardCheck, check: (c) => c.entryCount >= 100 },
+  // Was a duplicate of Hundred Entries (both entryCount >= 100). Now the third
+  // rung of the category-depth ladder — see Balance Sheet Basics above.
+  { key: 'rare__master_sorter', tier: 'rare', title: 'Master Sorter', description: '15 entries in each of the four categories', icon: ClipboardCheck, check: (c) => CATEGORY_LIST.every((cat) => c.categoryCounts[cat] >= 15) },
   { key: 'rare__growing', tier: 'rare', title: 'Growing', description: 'Three months in a row ending positive', icon: TrendingUp, check: (c) => c.longestConsecutivePositiveMonths >= 3 },
   { key: 'rare__five_hundred_tracked', tier: 'rare', title: 'Five Hundred Tracked', description: 'Tracking $500 in total spending', icon: Wallet, check: (c) => c.totalTracked >= 500 },
   { key: 'rare__hundred_entries', tier: 'rare', title: 'Hundred Entries', description: 'Logging 100 entries', icon: BarChart3, check: (c) => c.entryCount >= 100 },

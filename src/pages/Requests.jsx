@@ -77,16 +77,26 @@ const isRecent = (resolvedAt) => {
   return days <= RECENT_WINDOW_DAYS;
 };
 
-function ViewInTasksBadge({ taskId }) {
-  if (!taskId) return null;
+// requests.task_id is ON DELETE SET NULL, so a chore promise whose task the
+// parent later deleted has no task to link to. Falling back to the status pill
+// keeps the row readable — returning null left an accepted request showing an
+// amount and nothing else, with no indication it had been accepted at all.
+function RequestOutcome({ request }) {
+  if (request.type === 'chore_promise' && request.status === 'accepted' && request.taskId) {
+    return (
+      <Link
+        to={`/tasks?taskId=${request.taskId}`}
+        className="inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full bg-sky-100 text-sky-700 hover:bg-sky-200"
+      >
+        View in Tasks
+        <ArrowRight className="w-3 h-3" />
+      </Link>
+    );
+  }
   return (
-    <Link
-      to={`/tasks?taskId=${taskId}`}
-      className="inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full bg-sky-100 text-sky-700 hover:bg-sky-200"
-    >
-      View in Tasks
-      <ArrowRight className="w-3 h-3" />
-    </Link>
+    <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${STATUS_STYLES[request.status] || STATUS_STYLES.pending}`}>
+      {STATUS_LABELS[request.status] || request.status}
+    </span>
   );
 }
 
@@ -399,13 +409,7 @@ export default function Requests() {
                 </div>
                 <div className="flex items-center gap-3 shrink-0">
                   <span className="text-sm font-extrabold text-slate-800">{formatCurrency(request.amount)}</span>
-                  {request.type === 'chore_promise' && request.status === 'accepted' ? (
-                    <ViewInTasksBadge taskId={request.taskId} />
-                  ) : (
-                    <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${STATUS_STYLES[request.status]}`}>
-                      {STATUS_LABELS[request.status]}
-                    </span>
-                  )}
+                  <RequestOutcome request={request} />
                 </div>
               </div>
             ))}
@@ -441,15 +445,7 @@ export default function Requests() {
                     <span className="text-sm font-extrabold text-slate-800">
                       {formatCurrency(request.amount)}
                     </span>
-                    {request.type === 'chore_promise' && request.status === 'accepted' ? (
-                      <ViewInTasksBadge taskId={request.taskId} />
-                    ) : (
-                      <span
-                        className={`text-xs font-bold px-2.5 py-1 rounded-full ${STATUS_STYLES[request.status]}`}
-                      >
-                        {STATUS_LABELS[request.status]}
-                      </span>
-                    )}
+                    <RequestOutcome request={request} />
                   </div>
                 </div>
               ))}
