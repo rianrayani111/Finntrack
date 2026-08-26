@@ -12,12 +12,16 @@ import {
 export default function MonthlySummary() {
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
   const [year, setYear] = useState(new Date().getFullYear());
   const [month, setMonth] = useState(new Date().getMonth());
 
   useEffect(() => {
     db.entities.Transaction.list("-date", 500)
       .then((items) => setTransactions(items || []))
+      .catch((error) => {
+        setLoadError(error.message || "Could not load your summary. Please refresh and try again.");
+      })
       .finally(() => setLoading(false));
     db.users.bumpSummaryViews().catch(() => {});
   }, []);
@@ -79,6 +83,13 @@ export default function MonthlySummary() {
       {loading ? (
         <div className="flex justify-center py-20">
           <div className="w-8 h-8 border-4 border-sky-200 border-t-sky-600 rounded-full animate-spin" />
+        </div>
+      ) : loadError ? (
+        // Checked ahead of the empty state: a failed load also produces zero
+        // transactions, and "No data available yet" would hide the failure.
+        <div className="finn-card text-center py-10">
+          <p className="text-slate-700 font-bold">Could not load your summary</p>
+          <p className="text-sm text-muted-foreground font-semibold mt-1">{loadError}</p>
         </div>
       ) : !hasAnyData ? (
         <div className="finn-card flex flex-col items-center text-center py-10">

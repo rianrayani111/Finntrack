@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Pencil } from 'lucide-react';
 import AchievementsPanel from '@/components/AchievementsPanel';
+import { toast } from '@/components/ui/use-toast';
 
 export default function ParentChildDetail() {
   const { childId } = useParams();
@@ -23,6 +24,7 @@ export default function ParentChildDetail() {
   const [transactions, setTransactions] = useState([]);
   const [earnedBadgeKeys, setEarnedBadgeKeys] = useState(new Set());
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
   const [deleting, setDeleting] = useState(false);
   const now = new Date();
 
@@ -32,6 +34,9 @@ export default function ParentChildDetail() {
         setChild(childDoc);
         setTransactions((txns || []).filter((t) => t.childId === childId));
         setEarnedBadgeKeys(new Set((badgeRows || []).map((r) => r.badge_key)));
+      })
+      .catch((error) => {
+        setLoadError(error.message || 'Could not load this child. Please refresh and try again.');
       })
       .finally(() => setLoading(false));
   }, [childId]);
@@ -51,8 +56,16 @@ export default function ParentChildDetail() {
     setDeleting(true);
     try {
       await db.users.deleteChild(childId);
-      refreshSubscription();
+      await refreshSubscription();
       navigate('/parent');
+    } catch (error) {
+      // Without this the rejection was unhandled: no toast, no navigation, and
+      // the Delete button simply re-enabled with no explanation.
+      toast({
+        title: 'Could not delete child',
+        description: error.message || 'Please try again.',
+        variant: 'destructive',
+      });
     } finally {
       setDeleting(false);
     }
@@ -62,6 +75,18 @@ export default function ParentChildDetail() {
     return (
       <div className="flex justify-center py-20">
         <div className="w-8 h-8 border-4 border-sky-200 border-t-sky-600 rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  // Before the "not found" branch: a failed fetch also leaves child null, and
+  // reporting that as "Child not found" would misattribute an outage to a
+  // deleted account.
+  if (loadError) {
+    return (
+      <div className="finn-card text-center py-10">
+        <p className="text-slate-700 font-bold">Could not load this child</p>
+        <p className="text-sm text-muted-foreground font-semibold mt-1">{loadError}</p>
       </div>
     );
   }

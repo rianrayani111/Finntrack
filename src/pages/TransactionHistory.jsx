@@ -35,7 +35,11 @@ export default function TransactionHistory() {
       const matchesSearch = !search || [transactionReason(t), t.location, CATEGORY_LABELS[t.category]].join(' ').toLowerCase().includes(search.toLowerCase());
       const matchesMonth = monthFilter === 'all' || parseLocalDate(t.date).getMonth() === Number(monthFilter);
       const matchesType = typeFilter === 'all' || transactionType(t) === typeFilter;
-      const matchesCategory = categoryFilter === 'all' || t.category === categoryFilter;
+      // Deposits carry a real null category, and CATEGORY_LABELS keys it under
+      // the string 'null' (labelled "Deposit"), which is what the dropdown's
+      // option value is — so compare as strings, matching how the row below
+      // already looks the label up.
+      const matchesCategory = categoryFilter === 'all' || String(t.category) === categoryFilter;
       return matchesSearch && matchesMonth && matchesType && matchesCategory;
     });
   }, [transactions, search, monthFilter, typeFilter, categoryFilter]);
