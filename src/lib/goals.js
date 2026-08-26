@@ -1,4 +1,4 @@
-import { currentBalance, transactionType } from '@/lib/finance';
+import { currentBalance, transactionType, parseLocalDate } from '@/lib/finance';
 
 export const GOAL_TYPE_LABELS = {
   earn: 'Earn money',
@@ -8,7 +8,7 @@ export const GOAL_TYPE_LABELS = {
 const toDayTs = (dateStr) => {
   const value = String(dateStr || '').trim();
   if (!value) return NaN;
-  return new Date(`${value}T00:00:00`).getTime();
+  return parseLocalDate(value).getTime();
 };
 
 const isTransactionWithinTimeline = (transaction, startDate, endDate) => {
@@ -24,8 +24,8 @@ const isTransactionWithinTimeline = (transaction, startDate, endDate) => {
 };
 
 export const timelineLabel = (goal) => {
-  const start = goal?.startDate ? new Date(goal.startDate).toLocaleDateString() : 'N/A';
-  const end = goal?.endDate ? new Date(goal.endDate).toLocaleDateString() : 'N/A';
+  const start = goal?.startDate ? parseLocalDate(goal.startDate).toLocaleDateString() : 'N/A';
+  const end = goal?.endDate ? parseLocalDate(goal.endDate).toLocaleDateString() : 'N/A';
   return `${start} - ${end}`;
 };
 
