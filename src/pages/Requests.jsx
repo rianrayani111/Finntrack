@@ -1,14 +1,13 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useOutletContext } from 'react-router-dom';
 import { db } from '@/api/db';
-import { useAuth } from '@/lib/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from '@/components/ui/use-toast';
 import { formatCurrency, parseDateValue } from '@/lib/finance';
-import { compressImageFile, MAX_PHOTO_DATA_URL_LENGTH } from '@/lib/image';
+import { compressImageFile, MAX_PHOTO_BLOB_BYTES } from '@/lib/image';
 import { HandCoins, ListChecks, Receipt, Clock, Camera, X, ArrowRight } from 'lucide-react';
 
 const REQUEST_TYPES = [
@@ -46,7 +45,15 @@ const REQUEST_TYPES = [
 
 const RECENT_WINDOW_DAYS = 7;
 
-const emptyForm = { type: 'money', description: '', amount: '', dueDate: '', proofText: '', proofPhotoUrl: '' };
+const emptyForm = {
+  type: 'money',
+  description: '',
+  amount: '',
+  dueDate: '',
+  proofText: '',
+  proofPhotoBlob: null,
+  proofPhotoPreviewUrl: '',
+};
 
 const STATUS_STYLES = {
   pending: 'bg-sky-100 text-sky-700',
@@ -101,7 +108,6 @@ function RequestOutcome({ request }) {
 }
 
 export default function Requests() {
-  const { profile } = useAuth();
   const { refreshPendingRequestCount } = useOutletContext() || {};
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -109,6 +115,13 @@ export default function Requests() {
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [showHistory, setShowHistory] = useState(false);
+  // Fetched fresh here rather than read from AuthContext's cached profile:
+  // that cache only refreshes on login/token-refresh/explicit calls, so a
+  // parent toggling "require receipt" for this child elsewhere wouldn't be
+  // reflected here until the child's session happened to refresh for some
+  // unrelated reason -- they could submit a refund thinking no photo was
+  // needed, then have the server (which always reads fresh) reject it.
+  const [requireRefundReceipt, setRequireRefundReceipt] = useState(false);
 
   const loadRequests = async () => {
     const docs = await db.entities.Request.list();
@@ -116,7 +129,10 @@ export default function Requests() {
   };
 
   useEffect(() => {
-    loadRequests()
+    Promise.all([
+      loadRequests(),
+      db.users.getMyProfile().then((p) => setRequireRefundReceipt(Boolean(p.requireRefundReceipt))),
+    ])
       .catch((error) => {
         setLoadError(error.message || 'Could not load your requests. Please refresh and try again.');
       })
@@ -124,7 +140,7 @@ export default function Requests() {
   }, []);
 
   const activeType = typeConfig(form.type);
-  const receiptRequired = activeType.value === 'refund' && Boolean(profile?.requireRefundReceipt);
+  const receiptRequired = activeType.value === 'refund' && requireRefundReceipt;
 
   const activeRequests = useMemo(
     () => requests.filter((request) => request.status === 'pending'),
@@ -147,8 +163,18 @@ export default function Requests() {
     setForm((prev) => ({ ...prev, [field]: value }));
   };
 
+  const clearPhoto = () => {
+    setForm((prev) => {
+      if (prev.proofPhotoPreviewUrl) URL.revokeObjectURL(prev.proofPhotoPreviewUrl);
+      return { ...prev, proofPhotoBlob: null, proofPhotoPreviewUrl: '' };
+    });
+  };
+
   const handleSelectType = (type) => {
-    setForm((prev) => ({ ...emptyForm, type }));
+    setForm((prev) => {
+      if (prev.proofPhotoPreviewUrl) URL.revokeObjectURL(prev.proofPhotoPreviewUrl);
+      return { ...emptyForm, type };
+    });
   };
 
   const handlePhotoChange = async (event) => {
@@ -160,12 +186,16 @@ export default function Requests() {
       return;
     }
     try {
-      const dataUrl = await compressImageFile(file);
-      if (dataUrl.length > MAX_PHOTO_DATA_URL_LENGTH) {
+      const { blob, previewUrl } = await compressImageFile(file);
+      if (blob.size > MAX_PHOTO_BLOB_BYTES) {
+        URL.revokeObjectURL(previewUrl);
         toast({ title: 'That photo is too large. Try a smaller one.', variant: 'destructive' });
         return;
       }
-      handleInputChange('proofPhotoUrl', dataUrl);
+      setForm((prev) => {
+        if (prev.proofPhotoPreviewUrl) URL.revokeObjectURL(prev.proofPhotoPreviewUrl);
+        return { ...prev, proofPhotoBlob: blob, proofPhotoPreviewUrl: previewUrl };
+      });
     } catch (error) {
       toast({ title: 'Could not add that photo', description: error.message, variant: 'destructive' });
     }
@@ -174,7 +204,7 @@ export default function Requests() {
   const handleSubmit = async (event) => {
     event.preventDefault();
     if (saving) return;
-    if (receiptRequired && !form.proofPhotoUrl) {
+    if (receiptRequired && !form.proofPhotoBlob) {
       toast({
         title: 'Photo required',
         description: 'Your parent requires a receipt photo for refund requests.',
@@ -184,15 +214,23 @@ export default function Requests() {
     }
     setSaving(true);
     try {
+      // Upload happens at submit time, not at photo-select time: a photo
+      // picked but never sent (form abandoned, type switched away) should
+      // never touch storage.
+      const proofPhotoUrl = form.proofPhotoBlob
+        ? await db.storage.uploadProofPhoto(form.proofPhotoBlob)
+        : '';
+
       await db.entities.Request.create({
         type: form.type,
         description: form.description.trim(),
         amount: Number(form.amount),
         dueDate: activeType.hasDueDate && form.dueDate ? form.dueDate : null,
         proofText: form.proofText.trim(),
-        proofPhotoUrl: form.proofPhotoUrl,
+        proofPhotoUrl,
       });
       toast({ title: 'Request sent to your parent.' });
+      if (form.proofPhotoPreviewUrl) URL.revokeObjectURL(form.proofPhotoPreviewUrl);
       setForm((prev) => ({ ...emptyForm, type: prev.type }));
       await loadRequests();
       await refreshPendingRequestCount?.();
@@ -315,16 +353,16 @@ export default function Requests() {
                 <Label>
                   Receipt photo {receiptRequired ? '(required)' : '(optional)'}
                 </Label>
-                {form.proofPhotoUrl ? (
+                {form.proofPhotoPreviewUrl ? (
                   <div className="relative inline-block">
                     <img
-                      src={form.proofPhotoUrl}
+                      src={form.proofPhotoPreviewUrl}
                       alt="Receipt preview"
                       className="h-24 rounded-xl border border-slate-200"
                     />
                     <button
                       type="button"
-                      onClick={() => handleInputChange('proofPhotoUrl', '')}
+                      onClick={clearPhoto}
                       className="absolute -top-2 -right-2 bg-slate-800 text-white rounded-full p-1"
                     >
                       <X className="w-3 h-3" />
@@ -345,7 +383,14 @@ export default function Requests() {
             <Button type="submit" className="flex-1" disabled={saving}>
               {saving ? 'Sending...' : 'Send Request to Parent'}
             </Button>
-            <Button type="button" variant="outline" onClick={() => setForm(emptyForm)}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                if (form.proofPhotoPreviewUrl) URL.revokeObjectURL(form.proofPhotoPreviewUrl);
+                setForm(emptyForm);
+              }}
+            >
               Cancel
             </Button>
           </div>

@@ -6,7 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { toast } from '@/components/ui/use-toast';
 import { formatCurrency } from '@/lib/finance';
-import { compressImageFile, MAX_PHOTO_DATA_URL_LENGTH } from '@/lib/image';
+import { compressImageFile, MAX_PHOTO_BLOB_BYTES } from '@/lib/image';
 import { ListChecks, Clock, Camera, X, Hourglass } from 'lucide-react';
 
 const STATUS_STYLES = {
@@ -39,7 +39,8 @@ export default function Tasks() {
   const [showHistory, setShowHistory] = useState(false);
   const [expandedTaskId, setExpandedTaskId] = useState(null);
   const [proofText, setProofText] = useState('');
-  const [proofPhoto, setProofPhoto] = useState('');
+  const [proofPhotoBlob, setProofPhotoBlob] = useState(null);
+  const [proofPhotoPreviewUrl, setProofPhotoPreviewUrl] = useState('');
   const [submittingId, setSubmittingId] = useState(null);
   const [loadError, setLoadError] = useState('');
 
@@ -86,10 +87,18 @@ export default function Tasks() {
   const highlightClass = (taskId) =>
     taskId === highlightedTaskId ? 'ring-2 ring-sky-400' : '';
 
+  const clearPhoto = () => {
+    setProofPhotoPreviewUrl((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return '';
+    });
+    setProofPhotoBlob(null);
+  };
+
   const resetProofForm = () => {
     setExpandedTaskId(null);
     setProofText('');
-    setProofPhoto('');
+    clearPhoto();
   };
 
   const handleStartComplete = (taskId) => {
@@ -99,7 +108,7 @@ export default function Tasks() {
     }
     setExpandedTaskId(taskId);
     setProofText('');
-    setProofPhoto('');
+    clearPhoto();
   };
 
   const handlePhotoChange = async (event) => {
@@ -111,12 +120,17 @@ export default function Tasks() {
       return;
     }
     try {
-      const dataUrl = await compressImageFile(file);
-      if (dataUrl.length > MAX_PHOTO_DATA_URL_LENGTH) {
+      const { blob, previewUrl } = await compressImageFile(file);
+      if (blob.size > MAX_PHOTO_BLOB_BYTES) {
+        URL.revokeObjectURL(previewUrl);
         toast({ title: 'That photo is too large. Try a smaller one.', variant: 'destructive' });
         return;
       }
-      setProofPhoto(dataUrl);
+      setProofPhotoPreviewUrl((prev) => {
+        if (prev) URL.revokeObjectURL(prev);
+        return previewUrl;
+      });
+      setProofPhotoBlob(blob);
     } catch (error) {
       toast({ title: 'Could not add that photo', description: error.message, variant: 'destructive' });
     }
@@ -126,7 +140,11 @@ export default function Tasks() {
     if (submittingId === taskId) return;
     setSubmittingId(taskId);
     try {
-      await db.entities.Task.submit(taskId, { proofText: proofText.trim(), proofPhotoUrl: proofPhoto });
+      // Upload happens at submit time, not at photo-select time -- a photo
+      // picked but never sent (task collapsed, another task started instead)
+      // should never touch storage.
+      const proofPhotoUrl = proofPhotoBlob ? await db.storage.uploadProofPhoto(proofPhotoBlob) : '';
+      await db.entities.Task.submit(taskId, { proofText: proofText.trim(), proofPhotoUrl });
       toast({ title: 'Sent to your parent for approval.' });
       resetProofForm();
       await loadTasks();
@@ -216,12 +234,12 @@ export default function Tasks() {
 
                     <div className="space-y-2">
                       <Label>Photo proof (optional)</Label>
-                      {proofPhoto ? (
+                      {proofPhotoPreviewUrl ? (
                         <div className="relative inline-block">
-                          <img src={proofPhoto} alt="Proof preview" className="h-24 rounded-xl border border-slate-200" />
+                          <img src={proofPhotoPreviewUrl} alt="Proof preview" className="h-24 rounded-xl border border-slate-200" />
                           <button
                             type="button"
-                            onClick={() => setProofPhoto('')}
+                            onClick={clearPhoto}
                             className="absolute -top-2 -right-2 bg-slate-800 text-white rounded-full p-1"
                           >
                             <X className="w-3 h-3" />

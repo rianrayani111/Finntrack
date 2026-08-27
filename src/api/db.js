@@ -693,6 +693,46 @@ const billingApi = {
   },
 };
 
+const PROOF_PHOTO_BUCKET = 'proof-photos';
+// Signed URLs are only ever used for one immediate render (LazyProofPhoto
+// fetches on click, displays, done) -- short-lived by design rather than
+// cached, so there's nothing to invalidate if a family's access changes.
+const PROOF_PHOTO_SIGNED_URL_TTL_SECONDS = 3600;
+
+const storageApi = {
+  // Uploads an already-compressed proof-photo blob (see compressImageFile in
+  // src/lib/image.js) under the caller's own uid, matching the
+  // {uploader_uid}/{uuid}.{ext} shape both the storage RLS policies and
+  // finn_proof_len_ok (migration 0021) expect. Returns the object PATH to
+  // store in a request/task row's proof_photo_url column -- never a URL
+  // directly, since the bucket is private and reads always go through a
+  // short-lived signed URL (see resolveProofPhotoUrl below).
+  uploadProofPhoto: async (blob) => {
+    const user = await requireCurrentUser();
+    const path = `${user.id}/${crypto.randomUUID()}.jpg`;
+    const { error } = await supabase.storage
+      .from(PROOF_PHOTO_BUCKET)
+      .upload(path, blob, { contentType: 'image/jpeg', upsert: false });
+    if (error) throw new Error(error.message || 'Could not upload that photo.');
+    return path;
+  },
+};
+
+// requests/tasks predate object storage (see 0021): existing rows still carry
+// raw data:image/...;base64,... values, which render directly with no fetch
+// needed. Anything else is a storage object path from a real upload, resolved
+// to a short-lived signed URL -- the storage SELECT policy (own family only)
+// is what actually gates whether this succeeds, not the path's shape.
+const resolveProofPhotoUrl = async (rawValue) => {
+  if (!rawValue) return null;
+  if (rawValue.startsWith('data:')) return rawValue;
+  const { data, error } = await supabase.storage
+    .from(PROOF_PHOTO_BUCKET)
+    .createSignedUrl(rawValue, PROOF_PHOTO_SIGNED_URL_TTL_SECONDS);
+  if (error) throw new Error(error.message || 'Could not load that photo.');
+  return data?.signedUrl || null;
+};
+
 const REQUEST_TYPES = ['money', 'chore_promise', 'refund'];
 
 const REQUEST_LIST_COLUMNS =
@@ -720,7 +760,7 @@ const requestApi = {
   getProofPhoto: async (id) => {
     const { data, error } = await supabase.from('requests').select('proof_photo_url').eq('id', id).single();
     if (error) throw new Error(error.message);
-    return data?.proof_photo_url || null;
+    return resolveProofPhotoUrl(data?.proof_photo_url);
   },
 
   create: async (payload = {}) => {
@@ -790,7 +830,7 @@ const taskApi = {
   getProofPhoto: async (id) => {
     const { data, error } = await supabase.from('tasks').select('proof_photo_url').eq('id', id).single();
     if (error) throw new Error(error.message);
-    return data?.proof_photo_url || null;
+    return resolveProofPhotoUrl(data?.proof_photo_url);
   },
 
   create: async (payload = {}) => {
@@ -878,6 +918,7 @@ export const db = {
   users,
   billing: billingApi,
   alerts: alertsApi,
+  storage: storageApi,
   entities: {
     Transaction: transactionApi,
     Goal: goalApi,
