@@ -26,10 +26,9 @@ npx skills add base44/skills
 - `vite.config.js`: Vite config and Base44 Vite plugin setup.
 - `.env.local`: local-only environment values; never commit secrets.
 
-Note: the backend is Supabase, not Firebase. `firestore.rules` at the repo root
-is a leftover from an earlier backend and is not enforced anywhere — do not
-treat it as this app's authorization model; `supabase/migrations/` holds the
-real RLS policies.
+Note: the backend is Supabase, not Firebase. `supabase/migrations/` holds the
+authorization model (RLS policies plus the SECURITY DEFINER functions that own
+every privileged write).
 
 ## Working Notes
 
