@@ -3,6 +3,7 @@ import { Link, useOutletContext } from 'react-router-dom';
 import { db } from '@/api/db';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/components/ui/use-toast';
+import LazyProofPhoto from '@/components/LazyProofPhoto';
 import { formatCurrency, parseDateValue } from '@/lib/finance';
 import { ArrowRight, Check, Clock, HandCoins, ListChecks, Receipt, X } from 'lucide-react';
 
@@ -185,17 +186,16 @@ export default function ParentRequests() {
                     {TYPE_LABELS[request.type] || TYPE_LABELS.money}
                   </span>
                   <p className="text-sm text-slate-700 font-semibold">{request.description}</p>
-                  {(request.proofText || request.proofPhotoUrl) && (
+                  {(request.proofText || request.hasProofPhoto) && (
                     <div className="rounded-2xl bg-slate-50 p-3 space-y-2">
                       <p className="text-xs uppercase tracking-wide text-muted-foreground font-semibold">Receipt</p>
                       {request.proofText && <p className="text-sm text-slate-700 font-semibold">{request.proofText}</p>}
-                      {request.proofPhotoUrl && (
-                        <img
-                          src={request.proofPhotoUrl}
-                          alt="Receipt"
-                          className="max-h-40 rounded-xl border border-slate-200"
-                        />
-                      )}
+                      <LazyProofPhoto
+                        hasPhoto={request.hasProofPhoto}
+                        fetchPhoto={() => db.entities.Request.getProofPhoto(request.id)}
+                        alt="Receipt"
+                        className="max-h-40 rounded-xl border border-slate-200"
+                      />
                     </div>
                   )}
                   <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground font-semibold">

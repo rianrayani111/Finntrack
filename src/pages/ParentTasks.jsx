@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from '@/components/ui/use-toast';
+import LazyProofPhoto from '@/components/LazyProofPhoto';
 import { formatCurrency } from '@/lib/finance';
 import { Check, Clock, ListChecks, Trash2, X } from 'lucide-react';
 
@@ -287,13 +288,16 @@ export default function ParentTasks() {
                 </div>
                 <p className="text-sm font-bold text-slate-800">{task.name}</p>
                 <p className="text-sm text-slate-700 font-semibold">{task.description}</p>
-                {(task.proofText || task.proofPhotoUrl) && (
+                {(task.proofText || task.hasProofPhoto) && (
                   <div className="rounded-2xl bg-slate-50 p-3 space-y-2">
                     <p className="text-xs uppercase tracking-wide text-muted-foreground font-semibold">Proof</p>
                     {task.proofText && <p className="text-sm text-slate-700 font-semibold">{task.proofText}</p>}
-                    {task.proofPhotoUrl && (
-                      <img src={task.proofPhotoUrl} alt="Proof of completion" className="max-h-40 rounded-xl border border-slate-200" />
-                    )}
+                    <LazyProofPhoto
+                      hasPhoto={task.hasProofPhoto}
+                      fetchPhoto={() => db.entities.Task.getProofPhoto(task.id)}
+                      alt="Proof of completion"
+                      className="max-h-40 rounded-xl border border-slate-200"
+                    />
                   </div>
                 )}
                 <p className="text-xs text-muted-foreground font-semibold flex items-center gap-1">

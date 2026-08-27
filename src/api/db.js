@@ -70,6 +70,10 @@ const rowToGoal = (row) => ({
   updatedAt: row.updated_at,
 });
 
+// proofPhotoUrl is only present on rows fetched with it explicitly selected
+// (transactionApi.get-style single-row fetches); list() queries omit it (see
+// below) and rely on has_proof_photo instead, so hasProofPhoto falls back to
+// checking proofPhotoUrl itself when the generated column wasn't selected.
 const rowToRequest = (row) => ({
   id: row.id,
   parentId: row.parent_id,
@@ -80,6 +84,7 @@ const rowToRequest = (row) => ({
   dueDate: row.due_date,
   proofText: row.proof_text,
   proofPhotoUrl: row.proof_photo_url,
+  hasProofPhoto: Boolean(row.has_proof_photo ?? row.proof_photo_url),
   status: row.status,
   transactionId: row.transaction_id,
   taskId: row.task_id,
@@ -97,6 +102,7 @@ const rowToTask = (row) => ({
   status: row.status,
   proofText: row.proof_text,
   proofPhotoUrl: row.proof_photo_url,
+  hasProofPhoto: Boolean(row.has_proof_photo ?? row.proof_photo_url),
   transactionId: row.transaction_id,
   createdAt: row.created_at,
   submittedAt: row.submitted_at,
@@ -689,16 +695,32 @@ const billingApi = {
 
 const REQUEST_TYPES = ['money', 'chore_promise', 'refund'];
 
+const REQUEST_LIST_COLUMNS =
+  'id, parent_id, child_id, type, amount, description, due_date, proof_text, has_proof_photo, status, transaction_id, task_id, created_at, resolved_at';
+
 const requestApi = {
   // RLS scopes this to the caller's own requests (child) or their children's
   // requests (parent), so one query works for both roles.
+  //
+  // Deliberately omits proof_photo_url: it can be up to ~800KB of base64 per
+  // row (see migration 0017), so a select('*') here meant every list fetch
+  // downloaded every proof photo in the family's entire request history.
+  // has_proof_photo (a generated column) is enough for the UI to know
+  // whether to offer "View photo"; getProofPhoto below fetches the actual
+  // image for one row, only when someone asks to see it.
   list: async () => {
     const { data, error } = await supabase
       .from('requests')
-      .select('*')
+      .select(REQUEST_LIST_COLUMNS)
       .order('created_at', { ascending: false });
     if (error) throw new Error(error.message);
     return (data || []).map(rowToRequest);
+  },
+
+  getProofPhoto: async (id) => {
+    const { data, error } = await supabase.from('requests').select('proof_photo_url').eq('id', id).single();
+    if (error) throw new Error(error.message);
+    return data?.proof_photo_url || null;
   },
 
   create: async (payload = {}) => {
@@ -747,16 +769,28 @@ const requestApi = {
   },
 };
 
+const TASK_LIST_COLUMNS =
+  'id, parent_id, child_id, name, description, amount, status, proof_text, has_proof_photo, transaction_id, created_at, submitted_at, resolved_at';
+
 const taskApi = {
   // RLS scopes this to the caller's own tasks (child) or their children's
   // tasks (parent), so one query works for both roles.
+  //
+  // Deliberately omits proof_photo_url -- see requestApi.list's comment above,
+  // same reasoning, same fix.
   list: async () => {
     const { data, error } = await supabase
       .from('tasks')
-      .select('*')
+      .select(TASK_LIST_COLUMNS)
       .order('created_at', { ascending: false });
     if (error) throw new Error(error.message);
     return (data || []).map(rowToTask);
+  },
+
+  getProofPhoto: async (id) => {
+    const { data, error } = await supabase.from('tasks').select('proof_photo_url').eq('id', id).single();
+    if (error) throw new Error(error.message);
+    return data?.proof_photo_url || null;
   },
 
   create: async (payload = {}) => {
