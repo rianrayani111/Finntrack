@@ -60,8 +60,31 @@ export const calculateGoalProgress = (goal, transactions = []) => {
       .reduce((sum, txn) => sum + Number(txn.amount || 0), 0);
   } else {
     const baseline = Number(goal?.baselineBalance || 0);
-    const balanceNow = currentBalance(transactions);
-    currentAmount = Math.max(balanceNow - baseline, 0);
+    // Unlike 'earn' (already bounded to the timeline above), a 'save' goal's
+    // progress used to be measured against ALL transactions ever, with no
+    // upper bound. That let progress keep moving after the goal's own end
+    // date -- a goal a child hit 100% on could later drop back below 100%
+    // (and re-flip from "Completed" to "Overdue" via goalStatus below) simply
+    // because they spent money weeks afterward, on something unrelated to
+    // this goal.
+    //
+    // Match goalStatus's own definition of "the window is over": the day
+    // AFTER endDate, not endDate itself (a goal stays active through the
+    // whole of its last day). Before that point, behavior is unchanged --
+    // real-time balance vs baseline. Once the window has closed, freeze the
+    // tally at the balance as of endDate: later, unrelated activity can no
+    // longer move a goal that has already run its course.
+    const endTs = toDayTs(goal?.endDate);
+    const dayAfterEndTs = Number.isFinite(endTs) ? endTs + 24 * 60 * 60 * 1000 : Infinity;
+    const windowHasClosed = Date.now() >= dayAfterEndTs;
+    const relevantTransactions = windowHasClosed
+      ? transactions.filter((txn) => {
+          const ts = toDayTs(txn?.date);
+          return Number.isFinite(ts) && ts <= endTs;
+        })
+      : transactions;
+    const balanceAsOfWindow = currentBalance(relevantTransactions);
+    currentAmount = Math.max(balanceAsOfWindow - baseline, 0);
   }
 
   const safeCurrentAmount = Number.isFinite(currentAmount) ? currentAmount : 0;

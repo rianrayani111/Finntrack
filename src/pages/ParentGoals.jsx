@@ -162,7 +162,14 @@ export default function ParentGoals() {
       } else {
         const childChanged = editingGoal.childId !== payload.childId;
         const switchedToSave = editingGoal.goalType !== 'save' && payload.goalType === 'save';
-        if (payload.goalType === 'save' && (childChanged || switchedToSave)) {
+        // baselineBalance is meant to be "the balance at startDate" -- but it's
+        // captured as "the balance right now" at the moment the goal is
+        // written, on the assumption startDate is today. Moving startDate
+        // without recapturing it left the baseline anchored to whenever the
+        // goal was first created (or last edited), not to the new start date,
+        // which skews every later progress calculation for that goal.
+        const startDateChanged = editingGoal.startDate !== payload.startDate;
+        if (payload.goalType === 'save' && (childChanged || switchedToSave || startDateChanged)) {
           payload.baselineBalance = currentBalance(transactionsByChild[payload.childId] || []);
         }
 
