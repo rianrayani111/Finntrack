@@ -1,5 +1,5 @@
 import { corsHeaders, HttpError, requireParent, supabaseAdmin } from '../_shared/auth.ts';
-import { stripe, STRIPE_PRICE_IDS } from '../_shared/billing.ts';
+import { stripe, STRIPE_PRICE_IDS, resolveAppOrigin } from '../_shared/billing.ts';
 
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
@@ -50,7 +50,7 @@ Deno.serve(async (req: Request) => {
       customerId = customer.id;
     }
 
-    const origin = req.headers.get('origin') || 'https://www.finntrack.net';
+    const origin = resolveAppOrigin(req);
 
     const session = await stripe.checkout.sessions.create({
       mode: 'subscription',

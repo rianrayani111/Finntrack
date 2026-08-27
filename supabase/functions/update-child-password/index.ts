@@ -1,5 +1,8 @@
 import { corsHeaders, HttpError, requireParent, supabaseAdmin } from '../_shared/auth.ts';
 
+// Kept in sync with create-child-account's MIN_CHILD_PASSWORD_LENGTH.
+const MIN_CHILD_PASSWORD_LENGTH = 8;
+
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -13,7 +16,9 @@ Deno.serve(async (req: Request) => {
     const password = String(body.password || '');
 
     if (!childUid) throw new HttpError(400, 'childUid is required.');
-    if (password.length < 6) throw new HttpError(400, 'Password must be at least 6 characters.');
+    if (password.length < MIN_CHILD_PASSWORD_LENGTH) {
+      throw new HttpError(400, `Password must be at least ${MIN_CHILD_PASSWORD_LENGTH} characters.`);
+    }
 
     const { data: child, error: childError } = await supabaseAdmin
       .from('profiles')

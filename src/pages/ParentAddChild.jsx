@@ -24,7 +24,7 @@ const USERNAME_PATTERN = /^[a-z0-9_]{3,20}$/;
 // enforce. Checked here too so a short password fails in the form instead of
 // after a round-trip — which matters most in the post-checkout resume flow
 // below, where a rejected attempt discards the stashed pending child.
-const MIN_PASSWORD_LENGTH = 6;
+const MIN_PASSWORD_LENGTH = 8;
 const PENDING_CHILD_KEY = 'finntrack_pending_child';
 const RESUME_MAX_ATTEMPTS = 10;
 const RESUME_RETRY_DELAY_MS = 1500;

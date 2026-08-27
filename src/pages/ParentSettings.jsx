@@ -55,6 +55,9 @@ function PasswordInput({ id, value, onChange, show, onToggleShow, autoComplete }
   );
 }
 
+// Matches update-child-password's MIN_CHILD_PASSWORD_LENGTH.
+const MIN_CHILD_PASSWORD_LENGTH = 8;
+
 export default function ParentSettings() {
   const {
     user,
@@ -152,8 +155,12 @@ export default function ParentSettings() {
   const handleChangeChildPassword = async (e) => {
     e.preventDefault();
     if (!childPasswordTarget) return;
-    if (childNewPassword.length < 6) {
-      toast({ title: "Password too short", description: "Use at least 6 characters.", variant: "destructive" });
+    if (childNewPassword.length < MIN_CHILD_PASSWORD_LENGTH) {
+      toast({
+        title: "Password too short",
+        description: `Use at least ${MIN_CHILD_PASSWORD_LENGTH} characters.`,
+        variant: "destructive",
+      });
       return;
     }
     if (childNewPassword !== childConfirmPassword) {

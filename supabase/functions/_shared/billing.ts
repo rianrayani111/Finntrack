@@ -8,6 +8,29 @@ export const stripe = new Stripe(STRIPE_SECRET_KEY, {
   httpClient: Stripe.createFetchHttpClient(),
 });
 
+// create-checkout-session and create-portal-session both used to build
+// Stripe's success/cancel/return URLs from the request's own Origin header,
+// falling back to the production domain only if the header was absent. That
+// header is fully attacker-controlled -- a direct call to either function
+// (bypassing the app entirely) could set an arbitrary Origin and get Stripe
+// to redirect the caller's OWN checkout/portal session back to a domain of
+// their choosing. It's a self-redirect (nothing exposes another user's
+// session), but there is no reason to trust a client-supplied value here at
+// all when the set of legitimate origins is small and known ahead of time.
+const ALLOWED_APP_ORIGINS = [
+  'https://www.finntrack.net',
+  'https://finntrack.net',
+  // Local dev only; harmless to leave listed in production since it's not
+  // reachable from outside the developer's own machine.
+  'http://localhost:5173',
+];
+
+export function resolveAppOrigin(req: Request): string {
+  const requested = req.headers.get('origin');
+  if (requested && ALLOWED_APP_ORIGINS.includes(requested)) return requested;
+  return ALLOWED_APP_ORIGINS[0];
+}
+
 // 'base' is the required account subscription (includes one complimentary
 // child); 'addon' represents the cost of every child AFTER the first, as its
 // own separate subscription on the same Stripe customer.

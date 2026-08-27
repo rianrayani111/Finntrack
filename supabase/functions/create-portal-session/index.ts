@@ -1,5 +1,5 @@
 import { corsHeaders, HttpError, requireParent, supabaseAdmin } from '../_shared/auth.ts';
-import { stripe } from '../_shared/billing.ts';
+import { stripe, resolveAppOrigin } from '../_shared/billing.ts';
 
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
@@ -23,7 +23,7 @@ Deno.serve(async (req: Request) => {
       throw new HttpError(404, 'No billing account found for this parent yet.');
     }
 
-    const origin = req.headers.get('origin') || 'https://www.finntrack.net';
+    const origin = resolveAppOrigin(req);
 
     const portalSession = await stripe.billingPortal.sessions.create({
       customer: customerId,

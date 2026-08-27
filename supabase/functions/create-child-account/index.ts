@@ -3,6 +3,11 @@ import { hasActiveSubscription, syncSubscriptionQuantity } from '../_shared/bill
 
 const CHILD_EMAIL_DOMAIN = 'child.finntrack.local';
 const USERNAME_PATTERN = /^[a-z0-9_]{3,20}$/;
+// update-child-password already enforced this; account CREATION never did --
+// only a client-side check in ParentAddChild.jsx did, which a direct call to
+// this function bypasses entirely. Raised from 6 to 8 here (and to match, in
+// update-child-password) since this guards a child's real financial history.
+const MIN_CHILD_PASSWORD_LENGTH = 8;
 
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
@@ -53,7 +58,9 @@ Deno.serve(async (req: Request) => {
       );
     }
     if (!displayName) throw new HttpError(400, 'Child display name is required.');
-    if (!password) throw new HttpError(400, 'Password is required.');
+    if (password.length < MIN_CHILD_PASSWORD_LENGTH) {
+      throw new HttpError(400, `Password must be at least ${MIN_CHILD_PASSWORD_LENGTH} characters.`);
+    }
 
     const syntheticEmail = `${username}@${CHILD_EMAIL_DOMAIN}`;
 
@@ -75,6 +82,28 @@ Deno.serve(async (req: Request) => {
         : error.message;
       const status = /already been registered|duplicate key|unique constraint/i.test(error.message) ? 409 : 400;
       throw new HttpError(status, message);
+    }
+
+    // The count-then-create check above isn't atomic: two concurrent requests
+    // for the same parent can both read "0 existing children" (or both pass
+    // the addon-subscription check) before either has actually created one,
+    // and both proceed. Re-verify the SAME invariant now that this child
+    // definitely exists -- if a race let a second free/unpaid child through,
+    // undo it here rather than leaving two children active on one free plan.
+    // A legitimate single request always passes this: nothing about the
+    // parent's subscription changed between the two checks, so the only way
+    // this fails is the exact race this guards against.
+    const { count: childCountAfter } = await supabaseAdmin
+      .from('profiles')
+      .select('id', { count: 'exact', head: true })
+      .eq('parent_id', parentUid);
+
+    if ((childCountAfter || 0) > 1 && !(await hasActiveSubscription(parentUid, 'addon'))) {
+      await supabaseAdmin.auth.admin.deleteUser(data.user!.id);
+      throw new HttpError(
+        409,
+        'Another child account was created for this family at the same moment. Please try again.'
+      );
     }
 
     await syncSubscriptionQuantity(parentUid);
