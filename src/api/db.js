@@ -392,12 +392,12 @@ const users = {
     return { success: true };
   },
 
-  // Persists any newly-qualified badges (computed client-side from
-  // transaction history + profile state, see src/lib/gamification.js) and
-  // awards their XP server-side exactly once. Returns the child's new total
-  // XP and which of the submitted keys were actually newly earned.
-  syncBadges: async (badgeKeys) => {
-    const { data, error } = await supabase.rpc('sync_badges', { p_badge_keys: badgeKeys || [] });
+  // Recomputes badge eligibility server-side from the child's own transaction
+  // history + profile state (see finn_evaluate_badges in migration 0026) and
+  // persists + pays out anything newly earned. Takes no input from the
+  // client -- eligibility is no longer something the caller can assert.
+  syncBadges: async () => {
+    const { data, error } = await supabase.rpc('sync_badges');
     if (error) throw new Error(error.message);
     const row = (data || [])[0];
     return { totalXp: Number(row?.total_xp) || 0, newlyEarned: row?.newly_earned || [] };
