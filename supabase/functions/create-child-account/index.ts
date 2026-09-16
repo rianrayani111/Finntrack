@@ -64,11 +64,18 @@ Deno.serve(async (req: Request) => {
 
     const syntheticEmail = `${username}@${CHILD_EMAIL_DOMAIN}`;
 
+    // These MUST go in app_metadata, not user_metadata. handle_new_user (see
+    // migration 0029) reads the child's role, username and parent_id only from
+    // raw_app_meta_data, because user_metadata is the options.data object of a
+    // public signUp() call and is therefore attacker-controlled -- anyone with
+    // the anon key could otherwise mint a "child" inside a stranger's family
+    // and skip every check above. app_metadata is writable only through this
+    // admin API with the service-role key.
     const { data, error } = await supabaseAdmin.auth.admin.createUser({
       email: syntheticEmail,
       password,
       email_confirm: true,
-      user_metadata: {
+      app_metadata: {
         role: 'child',
         display_name: displayName,
         username,
