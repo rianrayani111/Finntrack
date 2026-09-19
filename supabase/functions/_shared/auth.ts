@@ -57,3 +57,38 @@ export async function requireParent(req: Request) {
 
   return { uid: profile.id as string };
 }
+
+/**
+ * Same as requireParent, for educator accounts (schools & institutions).
+ */
+export async function requireEducator(req: Request) {
+  const authHeader = req.headers.get('Authorization');
+  if (!authHeader) {
+    throw new HttpError(401, 'Missing Authorization header.');
+  }
+
+  const scopedClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    global: { headers: { Authorization: authHeader } },
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+
+  const { data: userData, error: userError } = await scopedClient.auth.getUser();
+  if (userError || !userData?.user) {
+    throw new HttpError(401, 'Not authenticated.');
+  }
+
+  const { data: profile, error: profileError } = await scopedClient
+    .from('profiles')
+    .select('id, role')
+    .eq('id', userData.user.id)
+    .single();
+
+  if (profileError || !profile) {
+    throw new HttpError(403, 'No profile found for this account.');
+  }
+  if (profile.role !== 'educator') {
+    throw new HttpError(403, 'Only an educator can perform this action.');
+  }
+
+  return { uid: profile.id as string };
+}

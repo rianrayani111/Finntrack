@@ -1,6 +1,7 @@
 import React from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from '@/lib/AuthContext';
+import { homePathForRole } from '@/lib/roles';
 
 const RoleLoading = () => (
   <div className="fixed inset-0 flex items-center justify-center">
@@ -23,7 +24,7 @@ export default function RoleGuard({ allowedRoles = [] }) {
   }
 
   if (!allowedRoles.includes(role)) {
-    return <Navigate to={role === 'parent' ? '/parent' : '/'} replace />;
+    return <Navigate to={homePathForRole(role)} replace />;
   }
 
   return <Outlet />;

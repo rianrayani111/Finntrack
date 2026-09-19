@@ -1,6 +1,24 @@
 import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
 
 import { db, supabase } from '@/api/db';
+import { studentEmail } from '@/api/education';
+
+// Schools & institutions accounts have no family, so no family subscription.
+const usesFamilyBilling = (role) => role === 'parent' || role === 'child';
+
+// Where each account type logs in, for the "wrong login" message below.
+const LOGIN_NAME_BY_ROLE = {
+  child: 'Kid Login',
+  parent: 'Parent Login',
+  student: 'Student Login',
+  educator: 'Teacher Login',
+};
+const ACCOUNT_NAME_BY_ROLE = {
+  child: 'a kid account',
+  parent: 'a parent account',
+  student: 'a student account',
+  educator: 'a teacher account',
+};
 
 const AuthContext = createContext();
 
@@ -78,7 +96,7 @@ export const AuthProvider = ({ children }) => {
       // SubscriptionGate (which gates on authChecked) renders the "Subscription
       // required" lockout against a still-null status for a frame or more --
       // on every single page load, for paying families included.
-      await loadSubscriptionStatus();
+      if (usesFamilyBilling(userProfile.role)) await loadSubscriptionStatus();
       setAuthChecked(true);
       setIsLoadingAuth(false);
       return userProfile;
@@ -132,10 +150,11 @@ export const AuthProvider = ({ children }) => {
 
       if (expectedRole && userProfile.role !== expectedRole) {
         await db.auth.logout();
+        const loginName = LOGIN_NAME_BY_ROLE[userProfile.role];
         throw new Error(
-          expectedRole === 'child'
-            ? 'That account is a parent account. Please use Parent Login.'
-            : 'That account is a child account. Please use Kid Login.'
+          loginName
+            ? `That is ${ACCOUNT_NAME_BY_ROLE[userProfile.role]}. Please use ${loginName}.`
+            : 'That account cannot log in here.'
         );
       }
 
@@ -144,7 +163,7 @@ export const AuthProvider = ({ children }) => {
       setProfile(userProfile);
       setRole(userProfile.role);
       setIsAuthenticated(true);
-      await loadSubscriptionStatus();
+      if (usesFamilyBilling(userProfile.role)) await loadSubscriptionStatus();
       setAuthChecked(true);
 
       return { success: true, role: userProfile.role };
@@ -162,6 +181,15 @@ export const AuthProvider = ({ children }) => {
 
   const loginParent = async (email, password) => {
     return login(email, password, 'parent');
+  };
+
+  // classId comes from education.findClass (school name + class ID step).
+  const loginStudent = async (classId, username, password) => {
+    return login(studentEmail(classId, username), password, 'student');
+  };
+
+  const loginEducator = async (email, password) => {
+    return login(email, password, 'educator');
   };
 
   const signupParent = async (email, password, displayName = '') => {
@@ -236,6 +264,8 @@ export const AuthProvider = ({ children }) => {
         login,
         loginChild,
         loginParent,
+        loginStudent,
+        loginEducator,
         signupParent,
         verifyParentSignup,
         resendParentOtp,

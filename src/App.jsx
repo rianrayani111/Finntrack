@@ -9,6 +9,7 @@ import ScrollToTop from './components/ScrollToTop';
 import ProtectedRoute from "@/components/ProtectedRoute";
 import RoleGuard from '@/components/RoleGuard';
 import SubscriptionGate from '@/components/SubscriptionGate';
+import { homePathForRole } from '@/lib/roles';
 
 // Every page used to be a static import, so the app shipped as one ~1.4MB
 // chunk: a public visitor on the marketing site downloaded every parent page,
@@ -42,6 +43,18 @@ const ParentChildDetail = lazy(() => import('@/pages/ParentChildDetail'));
 const ParentGoals = lazy(() => import('@/pages/ParentGoals'));
 const ParentEditTransaction = lazy(() => import('@/pages/ParentEditTransaction'));
 const ParentSettings = lazy(() => import('@/pages/ParentSettings'));
+const StudentLayout = lazy(() => import('@/components/StudentLayout'));
+const StudentDashboard = lazy(() => import('@/pages/student/StudentDashboard'));
+const StudentBank = lazy(() => import('@/pages/student/StudentBank'));
+const StudentMarketplace = lazy(() => import('@/pages/student/StudentMarketplace'));
+const StudentJobs = lazy(() => import('@/pages/student/StudentJobs'));
+const StudentStore = lazy(() => import('@/pages/student/StudentStore'));
+const StudentFinance = lazy(() => import('@/pages/student/StudentFinance'));
+const StudentClass = lazy(() => import('@/pages/student/StudentClass'));
+const StudentPortfolio = lazy(() => import('@/pages/student/StudentPortfolio'));
+const StudentBadges = lazy(() => import('@/pages/student/StudentBadges'));
+const StudentProfile = lazy(() => import('@/pages/student/StudentProfile'));
+const EducatorHome = lazy(() => import('@/pages/educator/EducatorHome'));
 const Home = lazy(() => import('@/pages/Home'));
 const About = lazy(() => import('@/pages/About'));
 const FAQ = lazy(() => import('@/pages/FAQ'));
@@ -61,11 +74,7 @@ const RoleHome = () => {
     return <FullScreenSpinner />;
   }
 
-  if (role === 'parent') {
-    return <Navigate to="/parent" replace />;
-  }
-
-  return <Navigate to="/dashboard" replace />;
+  return <Navigate to={homePathForRole(role)} replace />;
 };
 
 const RootRoute = () => {
@@ -76,10 +85,7 @@ const RootRoute = () => {
   }
 
   if (isAuthenticated) {
-    if (role === 'parent') {
-      return <Navigate to="/parent" replace />;
-    }
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to={homePathForRole(role)} replace />;
   }
 
   return <Home />;
@@ -113,6 +119,27 @@ const AuthenticatedApp = () => {
 
         <Route element={<ProtectedRoute unauthenticatedElement={<Navigate to="/login" replace />} />}>
           <Route path="/app" element={<RoleHome />} />
+
+          {/* Schools & institutions. Outside SubscriptionGate: schools are
+              not billed through the family subscription. */}
+          <Route element={<RoleGuard allowedRoles={["student"]} />}>
+            <Route path="/student" element={<StudentLayout />}>
+              <Route index element={<StudentDashboard />} />
+              <Route path="bank" element={<StudentBank />} />
+              <Route path="marketplace" element={<StudentMarketplace />} />
+              <Route path="jobs" element={<StudentJobs />} />
+              <Route path="store" element={<StudentStore />} />
+              <Route path="finance" element={<StudentFinance />} />
+              <Route path="class" element={<StudentClass />} />
+              <Route path="class/:studentId" element={<StudentPortfolio />} />
+              <Route path="badges" element={<StudentBadges />} />
+              <Route path="profile" element={<StudentProfile />} />
+            </Route>
+          </Route>
+
+          <Route element={<RoleGuard allowedRoles={["educator"]} />}>
+            <Route path="/educator" element={<EducatorHome />} />
+          </Route>
 
           <Route element={<SubscriptionGate />}>
             <Route element={<RoleGuard allowedRoles={["child"]} />}>

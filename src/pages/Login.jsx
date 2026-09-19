@@ -11,6 +11,7 @@ import FinnAuthLayout from "@/components/FinnAuthLayout";
 import { Checkbox } from "@/components/ui/checkbox";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import usePageMeta from "@/hooks/usePageMeta";
+import SchoolLogin, { SchoolLoginLinks } from "@/components/SchoolLogin";
 
 // Supabase's email OTP length is a project-level setting (6 by default, up to
 // 10). The form used to render 8 slots AND hard-require exactly 8 characters
@@ -27,10 +28,12 @@ const VIEW = {
   PARENT_SIGNUP: 'parent_signup',
   PARENT_SIGNUP_OTP: 'parent_signup_otp',
   CHILD_SIGNUP_BLOCKED: 'child_signup_blocked',
+  STUDENT_LOGIN: 'student_login',
+  TEACHER_LOGIN: 'teacher_login',
 };
 
 export default function Login() {
-  usePageMeta("Log In", "Log in to your FinnTrack parent or kid account.", "/login");
+  usePageMeta("Log In", "Log in to your FinnTrack parent, kid, student or teacher account.", "/login");
 
   const [view, setView] = useState(VIEW.CHILD_LOGIN);
 
@@ -64,6 +67,12 @@ export default function Login() {
 
   const moveToChildLogin = () => {
     setView(VIEW.CHILD_LOGIN);
+    setError(null);
+    setLoading(false);
+  };
+
+  const moveToView = (nextView) => {
+    setView(nextView);
     setError(null);
     setLoading(false);
   };
@@ -300,6 +309,11 @@ export default function Login() {
               Sign up as a child
             </button>
           </div>
+
+          <SchoolLoginLinks
+            onStudent={() => moveToView(VIEW.STUDENT_LOGIN)}
+            onTeacher={() => moveToView(VIEW.TEACHER_LOGIN)}
+          />
         </>
       )}
 
@@ -416,6 +430,11 @@ export default function Login() {
               Sign up as a child
             </button>
           </div>
+
+          <SchoolLoginLinks
+            onStudent={() => moveToView(VIEW.STUDENT_LOGIN)}
+            onTeacher={() => moveToView(VIEW.TEACHER_LOGIN)}
+          />
         </>
       )}
 
@@ -640,6 +659,10 @@ export default function Login() {
             </button>
           </div>
         </>
+      )}
+
+      {(view === VIEW.STUDENT_LOGIN || view === VIEW.TEACHER_LOGIN) && (
+        <SchoolLogin mode={view === VIEW.TEACHER_LOGIN ? 'teacher' : 'student'} onBack={moveToChildLogin} />
       )}
 
       {view === VIEW.CHILD_SIGNUP_BLOCKED && (

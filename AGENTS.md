@@ -21,6 +21,8 @@ npx skills add base44/skills
 
 - `src/`: frontend application source.
 - `src/api/db.js`: Supabase client plus the app's entire data layer (auth, users, transactions, goals, requests, tasks, alerts, billing).
+- `src/api/education.js`: data layer for the schools & institutions product (student and educator accounts, class economy). Separate from the family product: separate roles, routes (`/student`, `/educator`) and tables (`schools`, `classes`, `students`, `edu_*`, from migration 0030 on).
+- `supabase/scripts/education_test_data.sql`: hand-run test school/class/students for the student portal (not a migration).
 - `supabase/migrations/`: schema, RLS policies, and the SECURITY DEFINER functions that own every privileged write.
 - `supabase/functions/`: Deno edge functions (child accounts, Stripe checkout/portal/webhook, account deletion).
 - `vite.config.js`: Vite config and Base44 Vite plugin setup.
