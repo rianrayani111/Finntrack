@@ -1,5 +1,6 @@
 import { corsHeaders, HttpError, requireParent, supabaseAdmin } from '../_shared/auth.ts';
 import { stripe } from '../_shared/billing.ts';
+import { deleteProofPhotosFor } from '../_shared/storage.ts';
 
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
@@ -9,7 +10,30 @@ Deno.serve(async (req: Request) => {
   try {
     const { uid: parentUid } = await requireParent(req);
 
-    // Cancel Stripe billing BEFORE deleting anything. Once the auth user is
+    const { data: children, error: childrenError } = await supabaseAdmin
+      .from('profiles')
+      .select('id')
+      .eq('parent_id', parentUid);
+    if (childrenError) throw new HttpError(500, childrenError.message);
+
+    // Proof photos go before anything else, including Stripe. They are storage
+    // objects, not rows, so the auth.users cascade below never reaches them --
+    // without this, photos taken by children outlived the account forever.
+    // This step is idempotent (a second pass lists an empty folder) and touches
+    // nothing outside our own bucket, so a storage failure here aborts with
+    // zero side effects and the whole request is safe to retry. Placing it
+    // after the Stripe cancel instead would make a retry re-cancel a
+    // subscription whose row the webhook may not have marked canceled yet.
+    //
+    // Parents don't upload proof photos today (only the child Requests and
+    // Tasks pages do), so the parent pass is normally one empty list() call.
+    // It stays so a future parent-side upload can't quietly reopen this leak.
+    for (const child of children || []) {
+      await deleteProofPhotosFor(child.id);
+    }
+    await deleteProofPhotosFor(parentUid);
+
+    // Cancel Stripe billing BEFORE deleting any account. Once the auth user is
     // gone the parent has no login, so no way to reach the billing portal --
     // leaving a live subscription that charges their card forever with no
     // self-serve way to stop it. This runs first, and a failure aborts the
@@ -35,12 +59,6 @@ Deno.serve(async (req: Request) => {
         );
       }
     }
-
-    const { data: children, error: childrenError } = await supabaseAdmin
-      .from('profiles')
-      .select('id')
-      .eq('parent_id', parentUid);
-    if (childrenError) throw new HttpError(500, childrenError.message);
 
     // Delete each child's auth user first. The profiles FK cascade (parent_id
     // -> profiles.id) only removes the child *profile* row when the parent

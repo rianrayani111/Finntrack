@@ -1,5 +1,6 @@
 import { corsHeaders, HttpError, requireParent, supabaseAdmin } from '../_shared/auth.ts';
 import { syncSubscriptionQuantity } from '../_shared/billing.ts';
+import { deleteProofPhotosFor } from '../_shared/storage.ts';
 
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
@@ -25,6 +26,12 @@ Deno.serve(async (req: Request) => {
     if (child.parent_id !== parentUid) {
       throw new HttpError(403, 'That child account does not belong to your family.');
     }
+
+    // Photos first. They are storage objects, not rows, so the cascade below
+    // never reaches them. Doing this before deleteUser means a storage failure
+    // aborts with the child still intact and the request safe to retry, rather
+    // than leaving photos stranded under a uid that no longer exists.
+    await deleteProofPhotosFor(childUid);
 
     // Deleting the auth.users row cascades to profiles, which cascades to
     // transactions/goals/alerts — a single admin call cleans up everything and,
