@@ -15,12 +15,12 @@ export const FAQ_CATEGORIES = [
       {
         question: "How do I set it up?",
         answer:
-          "You create the account with your email, then add a profile for each of your children. FinnTrack generates a username and password for each child, which you give them. It takes about two minutes, and there's nothing to install.",
+          "You create the account with your email, then add a profile for each of your children. You choose a username and password for each child, which you give them. It takes about two minutes, and there's nothing to install.",
       },
       {
         question: "How many children can I add?",
         answer:
-          "As many as you like. Your first child is completely free, and every additional child is $3.99 per month (or $19.99 per year).",
+          "As many as you like. Your subscription includes your first child, and every additional child is $3.99 per month (or $19.99 per year).",
       },
     ],
   },
@@ -75,7 +75,7 @@ export const FAQ_CATEGORIES = [
       {
         question: "How much does FinnTrack cost?",
         answer:
-          "Your first child is completely free. Every additional child you add is $3.99 per month, or $19.99 per year, whichever billing option you choose.",
+          "A FinnTrack subscription is $6.99 per month or $49.99 per year, and includes your first child. Every additional child is $3.99 per month or $19.99 per year, matching whichever billing option you choose.",
       },
       {
         question: "Can I cancel anytime?",

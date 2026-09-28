@@ -175,9 +175,9 @@ export const RESOURCE_ARTICLES = [
       {
         type: "ul",
         items: [
-          { label: "Milestone Goal Setting:", text: "Kids set visual savings goals for items they truly care about—whether it's a $15 toy or a $100 bicycle. They track their progress with filling status bars, teaching them the power of delayed gratification." },
+          { label: "Milestone Goal Setting:", text: "Parents set savings goals for the things their kids truly care about—whether it's a $15 toy or a $100 bicycle. Kids track their progress with filling status bars, learning the power of delayed gratification." },
           { label: "Streak Building & Daily Habits:", text: "By consistently logging expenses and reviewing their balance daily, kids build activity streaks. This daily touchpoint transforms money tracking into an automatic, lifelong habit." },
-          { label: "Parent-Driven Streak Incentives:", text: "Parents can set custom monetary rewards for streak milestones (e.g., a $2 bonus for maintaining a 14-day tracking streak). This aligns parental reinforcement directly with good habits." },
+          { label: "Badges for Real Milestones:", text: "Kids earn points and unlock badges as their habits build, from logging their very first entry to keeping a 14-day streak alive. Every badge rewards something they actually did, so the recognition reinforces the habit itself." },
         ],
       },
       { type: "h2", text: "5. The Virtual Ledger Model: Zero Risk, Maximum Learning" },
@@ -189,14 +189,14 @@ export const RESOURCE_ARTICLES = [
       {
         type: "ul",
         items: [
-          { label: "First Child Free:", text: "Your first child is completely free, no subscription required to get started." },
+          { label: "One Simple Subscription:", text: "$6.99 per month or $49.99 per year, with your first child included." },
           { label: "Additional Children:", text: "Every additional child added is $3.99 per month or $19.99 per year, so larger families can onboard all their kids affordably." },
           { label: "Zero Hidden Fees:", text: "What you see is what you pay—no transaction charges, account minimums, or hidden maintenance costs." },
         ],
       },
       { type: "h2", text: "7. Preparing Kids for a Confident Financial Future" },
       { type: "p", text: "Teaching children about money shouldn't require handing them a credit card before they know how to calculate sales tax. By meeting 8-to-12-year-olds right where they are—with engaging software, physical cash tracking, vocabulary-building tools, and parent-guided rewards—FinnTrack equips the next generation with financial confidence that lasts a lifetime." },
-      { type: "callout", title: "Ready to Transform How Your Family Handles Allowance?", text: "Join thousands of parents who are building smart money habits with FinnTrack today. Safe, simple, and 100% risk-free." },
+      { type: "callout", title: "Ready to Transform How Your Family Handles Allowance?", text: "Start building smart money habits with your family today. Safe, simple, and backed by a full refund within 14 days if it isn't right for you." },
     ],
   },
   {

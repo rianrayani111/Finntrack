@@ -1,6 +1,6 @@
 # FinnTrack Terms and Conditions
 
-**Last updated: 28 July 2026**
+**Last updated: 28 September 2026**
 
 This document contains two parts, which together govern your use of FinnTrack:
 
@@ -43,7 +43,7 @@ FinnTrack is offered only to users located in the United States of America and t
 
 ## 4. Accounts, children, and parental consent
 
-A parent or legal guardian creates one account and may add more than one child to it. All children added to an account are covered by a single subscription at no additional cost.
+A parent or legal guardian creates one account and may add more than one child to it. A subscription includes the first child on the account. Each additional child is billed separately, as set out in Section 6.
 
 Before any personal data belonging to a child is processed, we obtain verifiable consent from that child's parent or legal guardian, using the process set out in Section 23. Where consent has not been validly given, or has been withdrawn, the affected child profile will not be activated, or will be deactivated and deleted.
 
@@ -69,7 +69,7 @@ We may remove any content that breaches this section and may suspend or close ac
 
 ## 6. Prices, payment, billing, and cancellation
 
-**Price.** Your first child is free. Each additional child costs US$3.99 per month, or US$19.99 per year, billed per child beyond the first. Prices are stated in United States dollars and exclude any taxes, which will be added where required by law.
+**Price.** A FinnTrack subscription costs US$6.99 per month or US$49.99 per year and includes your first child. Each additional child costs US$3.99 per month or US$19.99 per year. Adding a child partway through a billing period does not change what you have already been charged for that period; the new amount applies from your next renewal. Prices are stated in United States dollars and exclude any taxes, which will be added where required by law.
 
 **Payment processing.** Payments are processed by Stripe. We do not receive or store full card numbers. Your payment details are handled by Stripe under its own terms and privacy policy.
 
@@ -93,11 +93,11 @@ We do not sell Your Content. We do not use it for advertising. We do not use it 
 
 We may change, improve, suspend, limit, or discontinue features of the Service. If we permanently discontinue the Service, or materially reduce what a paid subscription provides, we will give reasonable notice and refund the unused portion of any prepaid period.
 
-**Please keep your own records.** We do not guarantee that data will be preserved, backed up, or recoverable. Data may be lost through technical failure, changes to the Service, or account deletion. Do not rely on FinnTrack as your only record of anything important. An export function is available from your account settings so you can keep your own copy.
+**Please keep your own records.** We do not guarantee that data will be preserved, backed up, or recoverable. Data may be lost through technical failure, changes to the Service, or account deletion. Do not rely on FinnTrack as your only record of anything important. If you would like a copy of your family's data, email [contact@finntrack.net](mailto:contact@finntrack.net) and we will send it to you.
 
 ## 9. Third-party services
 
-The Service relies on third-party providers, including Google Firebase (hosting, authentication, and database), Vercel (website hosting), and Stripe (payments). Their handling of data is governed by their own terms and privacy policies. We are not responsible for the acts or omissions of third-party providers.
+The Service relies on third-party providers, including Supabase (authentication, database, and file storage), Vercel (website hosting), Stripe (payments), and Google Fonts (the typefaces the website uses). Their handling of data is governed by their own terms and privacy policies. We are not responsible for the acts or omissions of third-party providers.
 
 ## 10. Disclaimer of warranties
 
@@ -177,9 +177,13 @@ Children cannot sign up for FinnTrack. A parent or legal guardian creates the ac
 **From or about each child:**
 
 - A first name or nickname chosen by the parent or child, used only to label the child's profile. We ask that a full legal name is not used.
-- The entries recorded in the app: an amount, a category, a date, and an optional short note
+- A username and password, set by the parent, that the child uses to sign in
+- The entries recorded in the app: an amount, a category, a date and time, what the money was for, where it was spent in the child's own words, and an optional short note
+- Requests the child sends to their parent (for money, a refund, or a promise to do a chore), tasks the parent sets, and any short explanation the child adds to either
+- **Optional photos** the child takes as proof: a receipt attached to a refund request, or a picture of a finished task. Only the child and their parent can view them, and they are deleted when the child's profile is deleted.
+- Progress within the app: savings goals the parent sets, badges earned, points, the daily login streak, and the avatar the child chooses
 
-**We do not collect from a child:** email address, phone number, full legal name, home address, date of birth, precise location, photographs, video, audio, contacts, social media details, government identifiers, payment details, or any identifier used for tracking or advertising.
+**We do not collect from a child:** email address, phone number, full legal name, home address, date of birth, precise location, video, audio, contacts, social media details, government identifiers, payment details, or any identifier used for tracking or advertising.
 
 **We do not connect to any financial account.** FinnTrack has no link to any bank, card, wallet, or payment system belonging to a child. Every number a child enters is typed in by hand and is not verified against anything real.
 
@@ -215,7 +219,8 @@ We process personal data only in order to:
 
 We share personal data only with:
 
-- **Google Firebase**, which provides authentication and database services on our behalf;
+- **Supabase**, which provides authentication, database, and file storage services on our behalf, including storage of the optional proof photos described in Section 19;
+- **Google Fonts**, which serves the typefaces the website uses. Loading a page causes your browser to request font files from Google, which receives your IP address in the process;
 - **Vercel**, which hosts the website;
 - **Stripe**, which processes payments from parents;
 - **Legal or regulatory authorities**, where required by law or legal process, or to protect the safety of a child or another person;
@@ -227,7 +232,7 @@ These providers act on our instructions and are not permitted to use personal da
 
 No child profile is activated until all of the following are complete:
 
-1. A parent or legal guardian creates an account using their own email address, and confirms their email by clicking a verification link we send to it.
+1. A parent or legal guardian creates an account using their own email address, and confirms their email by entering a one-time code we send to it.
 2. We provide the parent with a clear notice describing exactly what we collect about a child and how it is used.
 3. The parent confirms, by explicit affirmative action, that they are the parent or legal guardian of each child added, and that they consent to our processing of that child's personal data.
 4. The parent completes payment through Stripe using a payment card in their own name. The card transaction provides an independent, adult-verified confirmation and notifies the cardholder.
@@ -246,7 +251,7 @@ A parent or legal guardian may at any time:
 - **request erasure** of a child's personal data, or of the whole account;
 - **withdraw consent**, with the same ease as it was given;
 - **refuse any further collection or use** of a child's personal data, which will mean closing that child's profile;
-- **obtain a copy** of the data in a portable form, using the export function in account settings;
+- **obtain a copy** of the data in a portable form, by emailing us at the address below;
 - **nominate another individual** to exercise these rights on their behalf in the event of death or incapacity, as provided under the DPDP Act;
 - **raise a grievance** about how we have handled personal data.
 
@@ -262,7 +267,7 @@ We keep a child's entries for as long as that child's profile is active on a sub
 
 When an account or child profile is deleted, or consent is withdrawn, we delete the associated personal data within 30 days. We retain only the limited billing and transaction records we are legally required to keep for tax and accounting purposes, and those records contain no information about a child.
 
-Accounts that have been inactive for 12 months are deleted automatically, after notice to the parent.
+Accounts that have been inactive for 12 months are deleted, after notice to the parent.
 
 ## 26. Security
 
@@ -274,7 +279,7 @@ If a personal data breach occurs, we will notify affected parents and the releva
 
 ## 27. Where data is stored and transferred
 
-The Service is operated from India. Personal data is stored on servers operated by our providers, which are located in the United States. This means that, for users in India, personal data is transferred outside India, and, for users in the United States, personal data is accessible by the operator in India.
+The Service is operated from India. Personal data, including proof photos, is stored by Supabase on servers located in Canada. Our website host (Vercel) and payment processor (Stripe) are based in the United States. This means that personal data is transferred outside India for users in India, and outside the United States for users in the United States, and that it is accessible by the operator in India.
 
 By using the Service you acknowledge this transfer. We take steps to ensure the data is protected to the standard described in this Privacy Policy wherever it is held.
 

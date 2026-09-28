@@ -425,9 +425,9 @@ export default function ParentSettings() {
             <AlertDialogHeader>
               <AlertDialogTitle>Delete your account?</AlertDialogTitle>
               <AlertDialogDescription>
-                This permanently deletes your account and every child account in your family, along with all
-                transactions, goals, and alerts. This does not cancel your subscription — do that first from
-                Manage Billing if you don't want to keep being charged. This action cannot be undone.
+                This permanently deletes your account and every child account in your family, along with
+                everything they've logged, including photos. Your subscription is canceled automatically, so
+                you won't be charged again. This action cannot be undone.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
