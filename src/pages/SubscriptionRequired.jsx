@@ -56,7 +56,22 @@ export default function SubscriptionRequired() {
   }, []);
 
   const relevantStatus = needsBase ? baseSubscriptionStatus : addonSubscriptionStatus;
-  const hasLapsedSubscription = relevantStatus != null && !checkoutProcessing;
+  // Stripe statuses the customer portal cannot recover from. Once a
+  // subscription is canceled or expired there is nothing left for the portal to
+  // update -- it can change a card or undo a *pending* cancellation, but it
+  // cannot restart something already dead. Sending these to the portal left
+  // parents staring at a button that could not help them, which is the whole
+  // bug: locked out, with no route back in.
+  //
+  // past_due and unpaid are deliberately NOT here. Stripe is still retrying
+  // those, so the portal's "update card" revives the EXISTING subscription.
+  // Routing them to Checkout instead would open a second subscription while
+  // Stripe kept dunning the first one.
+  const TERMINAL_STATUSES = ["canceled", "incomplete_expired", "incomplete"];
+  const isTerminalStatus = relevantStatus != null && TERMINAL_STATUSES.includes(relevantStatus);
+  // Anything unrecognised still falls through to the portal: it is the safe
+  // default, because it can never create a duplicate subscription.
+  const hasLapsedSubscription = relevantStatus != null && !isTerminalStatus && !checkoutProcessing;
 
   const handleSubscribe = async () => {
     setRedirecting(true);
@@ -134,11 +149,15 @@ export default function SubscriptionRequired() {
           </>
         ) : (
           <>
-            <h1 className="text-xl font-extrabold text-slate-800">Subscription required</h1>
+            <h1 className="text-xl font-extrabold text-slate-800">
+              {isTerminalStatus ? "Your subscription has ended" : "Subscription required"}
+            </h1>
             <p className="text-sm text-muted-foreground font-semibold">
-              {needsBase
-                ? "FinnTrack includes your first child free. Additional children are billed separately."
-                : "An active subscription is required to keep using FinnTrack with more than one child."}
+              {isTerminalStatus
+                ? "Pick a plan to start it up again. Everything your family logged is still here, exactly as you left it."
+                : needsBase
+                  ? "FinnTrack includes your first child free. Additional children are billed separately."
+                  : "An active subscription is required to keep using FinnTrack with more than one child."}
             </p>
             <div className="grid grid-cols-2 gap-3">
               {(needsBase ? BASE_INTERVALS : ADDON_INTERVALS).map((opt) => (
@@ -176,7 +195,7 @@ export default function SubscriptionRequired() {
               onClick={handleSubscribe}
               disabled={redirecting}
             >
-              {redirecting ? "Redirecting..." : "Subscribe"}
+              {redirecting ? "Redirecting..." : isTerminalStatus ? "Resubscribe" : "Subscribe"}
             </Button>
           </>
         )}
