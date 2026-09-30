@@ -1,0 +1,20 @@
+-- profiles_delete_children (0001) let a parent delete a child's profile row
+-- straight through the REST API:
+--
+--   DELETE /rest/v1/profiles?id=eq.<child uuid>
+--
+-- That path skips everything delete-child-account does around the delete:
+--
+--   * the child's auth.users row survives, leaving an orphaned login behind;
+--   * syncSubscriptionQuantity never runs, so the parent keeps being billed
+--     for the removed child until some unrelated event triggers a resync;
+--   * deleteProofPhotosFor never runs, so the child's receipt and task photos
+--     stay in storage forever -- quietly reopening the exact leak that
+--     _shared/storage.ts was added to close.
+--
+-- Nothing in the app uses this policy: the only child-deletion path in src/
+-- calls the delete-child-account edge function, which uses the service role
+-- and so needs no RLS policy at all. With the policy gone, a direct DELETE on
+-- profiles matches zero rows for every authenticated user, and removing a
+-- child can only happen through the one path that also cleans up after it.
+drop policy if exists profiles_delete_children on public.profiles;
