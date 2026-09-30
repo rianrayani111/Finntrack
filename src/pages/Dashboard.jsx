@@ -120,6 +120,9 @@ export default function Dashboard() {
           })
       )
       .catch(() => {});
+
+    // Independent of the above: badge timing checks need the child's zone.
+    db.users.syncTimezone().catch(() => {});
   }, []);
 
   const now = new Date();

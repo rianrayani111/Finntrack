@@ -425,6 +425,32 @@ const users = {
     return Number(data) || 0;
   },
 
+  // Reports the browser's IANA time zone so badges that compare "when it
+  // happened" with "when it was logged" can do it in the child's own zone
+  // (see set_my_timezone / finn_evaluate_badges in migration 0039). Sends
+  // only when the zone changed for this user on this device, so it costs one
+  // RPC per child per device, not one per page load. If the call fails -- for
+  // instance the migration isn't deployed yet -- nothing is cached and it is
+  // simply tried again on a later visit.
+  syncTimezone: async () => {
+    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    if (!timezone) return;
+    const user = await requireCurrentUser();
+    const cacheKey = `finn:timezone-sent:${user.id}`;
+    try {
+      if (localStorage.getItem(cacheKey) === timezone) return;
+    } catch {
+      // storage unavailable: just send it
+    }
+    const { error } = await supabase.rpc('set_my_timezone', { p_timezone: timezone });
+    if (error) return;
+    try {
+      localStorage.setItem(cacheKey, timezone);
+    } catch {
+      // storage unavailable: it will be sent again next time, which is harmless
+    }
+  },
+
   updateAvatar: async ({ skin, hairStyle, hairColor, face }) => {
     const { error } = await supabase.rpc('update_avatar', {
       p_skin: skin || '',
