@@ -37,7 +37,7 @@ export default function TransactionHistory() {
   const filtered = useMemo(() => {
     return sortByDateDesc(transactions).filter((t) => {
       const matchesSearch = !search || [transactionReason(t), t.location, CATEGORY_LABELS[t.category]].join(' ').toLowerCase().includes(search.toLowerCase());
-      const matchesMonth = monthFilter === 'all' || parseLocalDate(t.date).getMonth() === Number(monthFilter);
+      const matchesMonth = monthFilter === 'all' || String(t.date).slice(0, 7) === monthFilter;
       const matchesType = typeFilter === 'all' || transactionType(t) === typeFilter;
       // Deposits carry a real null category, and CATEGORY_LABELS keys it under
       // the string 'null' (labelled "Deposit"), which is what the dropdown's
@@ -47,6 +47,17 @@ export default function TransactionHistory() {
       return matchesSearch && matchesMonth && matchesType && matchesCategory;
     });
   }, [transactions, search, monthFilter, typeFilter, categoryFilter]);
+
+  // "YYYY-MM" for every month that has at least one entry, newest first.
+  // Keyed by year as well as month: filtering on the month alone put every
+  // January the child had ever logged into the same list.
+  const monthOptions = useMemo(() => {
+    const keys = [...new Set(transactions.map((t) => String(t.date).slice(0, 7)))];
+    return keys.sort().reverse().map((key) => {
+      const [year, month] = key.split("-").map(Number);
+      return { value: key, label: `${MONTH_NAMES[month - 1]} ${year}` };
+    });
+  }, [transactions]);
 
   if (loading) {
     return (
@@ -87,8 +98,8 @@ export default function TransactionHistory() {
             <SelectTrigger><SelectValue placeholder="Month" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All months</SelectItem>
-              {MONTH_NAMES.map((name, index) => (
-                <SelectItem key={name} value={String(index)}>{name}</SelectItem>
+              {monthOptions.map(({ value, label }) => (
+                <SelectItem key={value} value={value}>{label}</SelectItem>
               ))}
             </SelectContent>
           </Select>
