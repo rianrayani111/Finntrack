@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { db } from '@/api/db';
+import { useAuth } from "@/lib/AuthContext";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 
 import {
@@ -46,6 +47,8 @@ const NAV_ITEMS = [
 export default function AppLayout() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { profile } = useAuth();
+  const greetingName = profile?.displayName?.trim() || "friend";
   const [mobileOpen, setMobileOpen] = useState(false);
   const [assignedTaskCount, setAssignedTaskCount] = useState(0);
   const [pendingRequestCount, setPendingRequestCount] = useState(0);
@@ -165,7 +168,7 @@ export default function AppLayout() {
                 <Menu className="w-5 h-5" />
               </Button>
               <div>
-                <p className="text-sm font-semibold text-slate-500">Hello, friend</p>
+                <p className="text-sm font-semibold text-slate-500">Hello, {greetingName}</p>
                 <h1 className="text-xl font-extrabold text-slate-800">Keep growing your savings</h1>
               </div>
             </div>
