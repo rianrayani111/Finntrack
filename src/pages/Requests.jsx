@@ -221,14 +221,21 @@ export default function Requests() {
         ? await db.storage.uploadProofPhoto(form.proofPhotoBlob)
         : '';
 
-      await db.entities.Request.create({
-        type: form.type,
-        description: form.description.trim(),
-        amount: Number(form.amount),
-        dueDate: activeType.hasDueDate && form.dueDate ? form.dueDate : null,
-        proofText: form.proofText.trim(),
-        proofPhotoUrl,
-      });
+      try {
+        await db.entities.Request.create({
+          type: form.type,
+          description: form.description.trim(),
+          amount: Number(form.amount),
+          dueDate: activeType.hasDueDate && form.dueDate ? form.dueDate : null,
+          proofText: form.proofText.trim(),
+          proofPhotoUrl,
+        });
+      } catch (error) {
+        // The request was refused, so nothing references the photo that was
+        // just uploaded. Remove it rather than strand it.
+        await db.storage.discardProofPhoto(proofPhotoUrl);
+        throw error;
+      }
       toast({ title: 'Request sent to your parent.' });
       if (form.proofPhotoPreviewUrl) URL.revokeObjectURL(form.proofPhotoPreviewUrl);
       setForm((prev) => ({ ...emptyForm, type: prev.type }));

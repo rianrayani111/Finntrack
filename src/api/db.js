@@ -786,6 +786,21 @@ const storageApi = {
     if (error) throw new Error(error.message || 'Could not upload that photo.');
     return path;
   },
+
+  // Best-effort removal of a photo whose request or task was then refused, so
+  // a failed submit doesn't strand a child's photo in storage. Never throws.
+  // The storage policy (migration 0040) allows it only while no request or
+  // task references the photo, so a submit that actually committed -- with
+  // only its response lost -- keeps its photo. Before 0040 is deployed the
+  // delete is simply refused and the photo stays, as it always did.
+  discardProofPhoto: async (path) => {
+    if (!path) return;
+    try {
+      await supabase.storage.from(PROOF_PHOTO_BUCKET).remove([path]);
+    } catch {
+      // Cleanup only: the submit error is what the user needs to see.
+    }
+  },
 };
 
 // requests/tasks predate object storage (see 0021): existing rows still carry

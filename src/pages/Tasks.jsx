@@ -144,7 +144,14 @@ export default function Tasks() {
       // picked but never sent (task collapsed, another task started instead)
       // should never touch storage.
       const proofPhotoUrl = proofPhotoBlob ? await db.storage.uploadProofPhoto(proofPhotoBlob) : '';
-      await db.entities.Task.submit(taskId, { proofText: proofText.trim(), proofPhotoUrl });
+      try {
+        await db.entities.Task.submit(taskId, { proofText: proofText.trim(), proofPhotoUrl });
+      } catch (error) {
+        // The submission was refused, so nothing references the photo that
+        // was just uploaded. Remove it rather than strand it.
+        await db.storage.discardProofPhoto(proofPhotoUrl);
+        throw error;
+      }
       toast({ title: 'Sent to your parent for approval.' });
       resetProofForm();
       await loadTasks();
