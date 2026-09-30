@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { db } from '@/api/db';
 import { Button } from '@/components/ui/button';
-import { formatCurrency } from '@/lib/finance';
+import { formatCurrency, formatEntryDateTime, CATEGORY_LABELS } from '@/lib/finance';
 import { useNavigate, useOutletContext } from 'react-router-dom';
 import { toast } from '@/components/ui/use-toast';
 
@@ -114,7 +114,7 @@ export default function ParentAlerts() {
                 <div>
                   <p className="font-extrabold text-slate-800">{alert.childName} logged a withdrawal</p>
                   <p className="text-sm text-muted-foreground font-semibold">
-                    {alert.date} at {alert.time}
+                    {formatEntryDateTime(alert.date, alert.time)}
                   </p>
                 </div>
                 {!alert.read && (
@@ -126,7 +126,7 @@ export default function ParentAlerts() {
 
               <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 text-sm">
                 <p><span className="font-bold">Amount:</span> {formatCurrency(alert.amount)}</p>
-                <p><span className="font-bold">Category:</span> {alert.category}</p>
+                <p><span className="font-bold">Category:</span> {CATEGORY_LABELS[String(alert.category)] || alert.category}</p>
                 <p><span className="font-bold">Location:</span> {alert.location}</p>
                 <p><span className="font-bold">Reason:</span> {alert.reason}</p>
                 <p><span className="font-bold">Child:</span> {alert.childName}</p>

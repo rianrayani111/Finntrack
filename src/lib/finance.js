@@ -49,6 +49,20 @@ export function parseDateValue(value) {
   return /^\d{4}-\d{2}-\d{2}$/.test(str) ? parseLocalDate(str) : new Date(value);
 }
 
+// An entry's date and time are the child's own wall-clock values (a Postgres
+// `date` plus a `time`, e.g. "2026-09-15" and "14:03:00"), not an instant, so
+// combine them as local time with no timezone conversion. Drops the seconds
+// nobody typed: "Sep 15, 2026 at 2:03 PM".
+export function formatEntryDateTime(dateStr, timeStr) {
+  const d = parseLocalDate(dateStr);
+  const datePart = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  if (!timeStr) return datePart;
+  const [hours, minutes] = String(timeStr).split(':');
+  d.setHours(Number(hours) || 0, Number(minutes) || 0, 0, 0);
+  const timePart = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+  return `${datePart} at ${timePart}`;
+}
+
 // Today's date as a local "YYYY-MM-DD" string. Date#toISOString gives the
 // UTC date, which can already be tomorrow for anyone west of UTC.
 export function todayLocalDateString() {

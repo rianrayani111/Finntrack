@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { db } from '@/api/db';
-import { formatCurrency, currentBalance, transactionType } from '@/lib/finance';
+import { formatCurrency, currentBalance, transactionType, formatEntryDateTime } from '@/lib/finance';
 import { Bell, PlusCircle, UserPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -111,7 +111,7 @@ export default function ParentDashboard() {
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {cardData.map(({ child, balance, last }) => {
             const lastActivityText = last
-              ? `${transactionType(last) === 'deposit' ? 'Deposit' : 'Withdrawal'} on ${last.date} at ${last.time}`
+              ? `${transactionType(last) === 'deposit' ? 'Deposit' : 'Withdrawal'} on ${formatEntryDateTime(last.date, last.time)}`
               : 'No activity yet';
 
             return (

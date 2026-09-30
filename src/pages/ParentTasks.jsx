@@ -10,6 +10,7 @@ import { toast } from '@/components/ui/use-toast';
 import LazyProofPhoto from '@/components/LazyProofPhoto';
 import { formatCurrency } from '@/lib/finance';
 import { Check, Clock, ListChecks, Trash2, X } from 'lucide-react';
+import { useConfirm } from '@/components/ConfirmDialog';
 
 const emptyForm = { childId: '', name: '', description: '', amount: '' };
 
@@ -33,6 +34,7 @@ const formatDateTime = (isoString) => {
 };
 
 export default function ParentTasks() {
+  const [confirm, confirmDialog] = useConfirm();
   const { refreshPendingTaskApprovalCount } = useOutletContext() || {};
   const [searchParams] = useSearchParams();
   const highlightedTaskId = searchParams.get('taskId');
@@ -153,8 +155,11 @@ export default function ParentTasks() {
   };
 
   const handleDelete = async (taskId) => {
-    const confirmDelete = window.confirm('Permanently delete this task?');
-    if (!confirmDelete) return;
+    const confirmed = await confirm({
+      title: 'Delete this task?',
+      description: 'This permanently removes the task. It cannot be undone.',
+    });
+    if (!confirmed) return;
 
     setDeletingId(taskId);
     try {
@@ -203,6 +208,7 @@ export default function ParentTasks() {
 
   return (
     <div className="space-y-6">
+      {confirmDialog}
       <div className="finn-card">
         <h1 className="text-2xl font-extrabold text-slate-800 flex items-center gap-2">
           <ListChecks className="w-6 h-6 text-sky-600" />

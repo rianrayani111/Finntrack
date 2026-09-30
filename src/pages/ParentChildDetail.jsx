@@ -9,14 +9,17 @@ import {
   formatCurrency,
   transactionReason,
   transactionType,
+  formatEntryDateTime,
 } from '@/lib/finance';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Pencil } from 'lucide-react';
 import AchievementsPanel from '@/components/AchievementsPanel';
 import { toast } from '@/components/ui/use-toast';
+import { useConfirm } from '@/components/ConfirmDialog';
 
 export default function ParentChildDetail() {
+  const [confirm, confirmDialog] = useConfirm();
   const { childId } = useParams();
   const navigate = useNavigate();
   const { refreshSubscription } = useAuth();
@@ -48,10 +51,12 @@ export default function ParentChildDetail() {
   );
 
   const handleDeleteChild = async () => {
-    const confirmDelete = window.confirm(
-      'Delete this child account and all their transactions/alerts? This cannot be undone.'
-    );
-    if (!confirmDelete) return;
+    const confirmed = await confirm({
+      title: 'Delete this child account?',
+      description: "This permanently deletes their account and everything they've logged, including photos. This cannot be undone.",
+      confirmLabel: 'Delete account',
+    });
+    if (!confirmed) return;
 
     setDeleting(true);
     try {
@@ -101,6 +106,7 @@ export default function ParentChildDetail() {
 
   return (
     <div className="space-y-6">
+      {confirmDialog}
       <div className="finn-card">
         <p className="text-sm text-muted-foreground font-semibold">Child detail</p>
         <h1 className="text-3xl font-extrabold text-slate-800 mt-1">{child.displayName}</h1>
@@ -163,7 +169,7 @@ export default function ParentChildDetail() {
                         </p>
                       </div>
                       <p className="text-sm text-muted-foreground font-semibold mt-1">
-                        {txn.date} at {txn.time}
+                        {formatEntryDateTime(txn.date, txn.time)}
                       </p>
                       <p className="text-sm mt-2"><span className="font-bold">Reason:</span> {transactionReason(txn)}</p>
                       <p className="text-sm"><span className="font-bold">Category:</span> {CATEGORY_LABELS[String(txn.category)] || '—'}</p>

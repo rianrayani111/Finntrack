@@ -10,6 +10,7 @@ import { toast } from '@/components/ui/use-toast';
 import { formatCurrency, currentBalance, todayLocalDateString } from '@/lib/finance';
 import { calculateGoalProgress, GOAL_TYPE_LABELS, timelineLabel } from '@/lib/goals';
 import { CalendarDays, Pencil, Target, Trash2, Trophy } from 'lucide-react';
+import { useConfirm } from '@/components/ConfirmDialog';
 
 // A function, not a module-level constant: evaluating todayLocalDateString()
 // once at import time meant a tab left open overnight defaulted new goals to
@@ -37,6 +38,7 @@ const statusLabels = {
 };
 
 export default function ParentGoals() {
+  const [confirm, confirmDialog] = useConfirm();
   const [children, setChildren] = useState([]);
   const [transactions, setTransactions] = useState([]);
   const [goals, setGoals] = useState([]);
@@ -191,8 +193,11 @@ export default function ParentGoals() {
   };
 
   const handleDeleteGoal = async (goalId) => {
-    const confirmDelete = window.confirm('Delete this goal?');
-    if (!confirmDelete) return;
+    const confirmed = await confirm({
+      title: 'Delete this goal?',
+      description: 'Your child will no longer see it. This cannot be undone.',
+    });
+    if (!confirmed) return;
 
     setDeletingGoalId(goalId);
     try {
@@ -243,6 +248,7 @@ export default function ParentGoals() {
 
   return (
     <div className="space-y-6">
+      {confirmDialog}
       <div className="finn-card">
         <h1 className="text-2xl font-extrabold text-slate-800">
           {editingGoal ? 'Edit Goal' : 'Set a Goal'}
