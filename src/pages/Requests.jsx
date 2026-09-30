@@ -186,7 +186,7 @@ export default function Requests() {
       return;
     }
     try {
-      const { blob, previewUrl } = await compressImageFile(file);
+      const { blob, previewUrl } = await compressImageFile(file, activeType.value === 'refund' ? 'receipt' : 'task');
       if (blob.size > MAX_PHOTO_BLOB_BYTES) {
         URL.revokeObjectURL(previewUrl);
         toast({ title: 'That photo is too large. Try a smaller one.', variant: 'destructive' });
