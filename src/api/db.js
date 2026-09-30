@@ -1,6 +1,50 @@
 import { createClient } from '@supabase/supabase-js';
 import { todayLocalDateString } from '@/lib/finance';
 
+// A password-reset link lands on /reset-password with `type=recovery` in the
+// URL. The Supabase client reads and then clears that URL while it initialises,
+// and announces it with a PASSWORD_RECOVERY event from a setTimeout(0) -- which
+// fires before the lazily loaded ResetPassword page has mounted to hear it. So
+// without this, that page could not tell a genuine recovery link apart from a
+// user who is simply already signed in, and it showed the reset form to both.
+//
+// Module code runs synchronously and the client only clears the URL later,
+// asynchronously, so recording it here -- above createClient -- always sees
+// it. Parsed the same way auth-js does (hash, then query string, which wins)
+// and matched on the same `type === 'recovery'` test it uses. sessionStorage
+// keeps it to this tab; ResetPassword clears it once the password is changed.
+const PASSWORD_RECOVERY_FLAG = 'finn:password-recovery';
+
+if (typeof window !== 'undefined') {
+  const params = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+  new URLSearchParams(window.location.search).forEach((value, key) => params.set(key, value));
+  if (params.get('type') === 'recovery') {
+    try {
+      sessionStorage.setItem(PASSWORD_RECOVERY_FLAG, '1');
+    } catch {
+      // Storage blocked (private mode on some browsers): ResetPassword still
+      // accepts a PASSWORD_RECOVERY event it hears directly.
+    }
+  }
+}
+
+export const passwordRecovery = {
+  isPending: () => {
+    try {
+      return sessionStorage.getItem(PASSWORD_RECOVERY_FLAG) === '1';
+    } catch {
+      return false;
+    }
+  },
+  clear: () => {
+    try {
+      sessionStorage.removeItem(PASSWORD_RECOVERY_FLAG);
+    } catch {
+      // nothing to clear
+    }
+  },
+};
+
 export const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL,
   import.meta.env.VITE_SUPABASE_ANON_KEY,
