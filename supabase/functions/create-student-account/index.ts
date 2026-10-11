@@ -1,4 +1,4 @@
-import { corsHeaders, HttpError, requireEducator, supabaseAdmin } from '../_shared/auth.ts';
+import { corsHeaders, finalizeAccountOrDelete, HttpError, requireEducator, supabaseAdmin } from '../_shared/auth.ts';
 
 // School-side student account creation. Built ahead of the educator portal
 // and DISABLED until then: it refuses every call unless the
@@ -84,6 +84,15 @@ Deno.serve(async (req: Request) => {
         taken ? 'That username is already taken in this class.' : error.message
       );
     }
+
+    await finalizeAccountOrDelete(data.user!.id, 'edu_finalize_student', {
+      p_user_id: data.user!.id,
+      p_class_id: classId,
+      p_username: username,
+      p_display_name: displayName,
+      p_student_number: studentNumber,
+      p_recovery_email: recoveryEmail,
+    });
 
     return new Response(JSON.stringify({ studentUid: data.user!.id, username }), {
       status: 200,

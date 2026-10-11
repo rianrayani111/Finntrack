@@ -3,9 +3,9 @@
 -- hand in the Supabase SQL editor, once, after 0030-0032.
 --
 -- Logins it creates
---   Student login -> School: Lincoln Middle   Class ID: RIAN1G
+--   Student login -> Class code: RIAN1G
 --     usernames alex, jordan, sam, taylor    password: finntrack123
---   Teacher login -> teacher.test@finntrack.local   password: finntrack123
+--   Teacher login -> School passcode: LMS2026   username: mdavis   password: finntrack123
 --
 -- Accounts are inserted straight into auth.users with their role in
 -- raw_app_meta_data, which is what the school-side account creation will do
@@ -53,7 +53,8 @@ begin
     return;
   end if;
 
-  insert into public.schools (id, name) values (v_school, 'Lincoln Middle');
+  insert into public.schools (id, name, passcode, plan, allow_student_password_reset)
+  values (v_school, 'Lincoln Middle', 'LMS2026', 'small_school', false);
 
   -- Teacher (must exist before the class that references it).
   insert into auth.users (
@@ -62,22 +63,29 @@ begin
     confirmation_token, email_change, email_change_token_new, recovery_token
   ) values (
     '00000000-0000-0000-0000-000000000000', v_teacher, 'authenticated', 'authenticated',
-    'teacher.test@finntrack.local', extensions.crypt(v_password, extensions.gen_salt('bf')), now(),
+    'mdavis.' || replace(v_school::text, '-', '') || '@teacher.finntrack.local',
+    extensions.crypt(v_password, extensions.gen_salt('bf')), now(),
     jsonb_build_object('provider', 'email', 'providers', array['email'],
-      'role', 'educator', 'display_name', 'Ms. Frizzle', 'school_id', v_school),
+      'role', 'educator', 'school_id', v_school, 'username', 'mdavis',
+      'educator_role', 'admin', 'display_name', 'Marcus Davis', 'display_title', 'Mr. Davis',
+      'contact_email', 'teacher.test@finntrack.local'),
     '{}'::jsonb, now(), now(), '', '', '', ''
   );
   insert into auth.identities (id, user_id, provider_id, identity_data, provider, last_sign_in_at, created_at, updated_at)
   values (
     gen_random_uuid(), v_teacher, v_teacher::text,
-    jsonb_build_object('sub', v_teacher::text, 'email', 'teacher.test@finntrack.local', 'email_verified', true),
+    jsonb_build_object('sub', v_teacher::text,
+      'email', 'mdavis.' || replace(v_school::text, '-', '') || '@teacher.finntrack.local',
+      'email_verified', true),
     'email', now(), now(), now()
   );
 
   -- created_at is backdated so the most recent payday counts as "after the
   -- class existed" and the first page load pays out straight away.
-  insert into public.classes (id, school_id, educator_id, name, code, timezone, savings_rate_pct, payday_dow, created_at)
-  values (v_class, v_school, v_teacher, 'Period 3 - Social Studies', 'RIAN1G', 'America/New_York', 5, 5, now() - interval '21 days');
+  insert into public.classes (id, school_id, educator_id, name, code, grade_level, timezone,
+    savings_rate_pct, payday_dow, seat_limit, created_at)
+  values (v_class, v_school, v_teacher, 'Period 3 - Social Studies', 'RIAN1G', '6-8',
+    'America/New_York', 5, 5, 30, now() - interval '21 days');
 
   for i in 1 .. array_length(v_students, 1) loop
     v_id := v_students[i][1]::uuid;
@@ -200,5 +208,5 @@ begin
   insert into public.edu_listings (class_id, seller_id, holding_id, item_id, sale_type, price, duration_seconds)
   values (v_class, null, null, v_chair, 'auction', 10, 86400);
 
-  raise notice 'Test class created. School: Lincoln Middle, Class ID: RIAN1G.';
+  raise notice 'Test class created. Student class code: RIAN1G. Teacher passcode LMS2026, username mdavis.';
 end $$;

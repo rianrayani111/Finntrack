@@ -8,3 +8,14 @@ verify_jwt = false
 # x-backfill-secret header instead of a Supabase user JWT.
 [functions.backfill-subscriptions]
 verify_jwt = false
+
+# Student self-signup with a class code: there is no session yet when this is
+# called, so it cannot require a user JWT. It validates the class code, the
+# class's join setting and its seat limit itself.
+[functions.join-class]
+verify_jwt = false
+
+# Free teacher sign-up (new school, or joining one by invite link). There is
+# no session yet when this is called, so it cannot require a user JWT.
+[functions.teacher-signup]
+verify_jwt = false

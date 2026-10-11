@@ -1,4 +1,4 @@
-import { corsHeaders, HttpError, requireParent, supabaseAdmin } from '../_shared/auth.ts';
+import { corsHeaders, finalizeAccountOrDelete, HttpError, requireParent, supabaseAdmin } from '../_shared/auth.ts';
 import { hasActiveSubscription, syncSubscriptionQuantity } from '../_shared/billing.ts';
 
 const CHILD_EMAIL_DOMAIN = 'child.finntrack.local';
@@ -90,6 +90,13 @@ Deno.serve(async (req: Request) => {
       const status = /already been registered|duplicate key|unique constraint/i.test(error.message) ? 409 : 400;
       throw new HttpError(status, message);
     }
+
+    await finalizeAccountOrDelete(data.user!.id, 'finn_finalize_child', {
+      p_user_id: data.user!.id,
+      p_parent_id: parentUid,
+      p_username: username,
+      p_display_name: displayName,
+    });
 
     // The count-then-create check above isn't atomic: two concurrent requests
     // for the same parent can both read "0 existing children" (or both pass

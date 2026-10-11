@@ -55,6 +55,7 @@ const StudentPortfolio = lazy(() => import('@/pages/student/StudentPortfolio'));
 const StudentBadges = lazy(() => import('@/pages/student/StudentBadges'));
 const StudentProfile = lazy(() => import('@/pages/student/StudentProfile'));
 const EducatorHome = lazy(() => import('@/pages/educator/EducatorHome'));
+const JoinSchool = lazy(() => import('@/pages/JoinSchool'));
 const Home = lazy(() => import('@/pages/Home'));
 const About = lazy(() => import('@/pages/About'));
 const FAQ = lazy(() => import('@/pages/FAQ'));
@@ -112,6 +113,7 @@ const AuthenticatedApp = () => {
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/terms" element={<Terms />} />
+        <Route path="/join-school" element={<JoinSchool />} />
         <Route path="/about" element={<About />} />
         <Route path="/faq" element={<FAQ />} />
         <Route path="/resources" element={<Resources />} />

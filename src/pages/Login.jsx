@@ -12,6 +12,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import usePageMeta from "@/hooks/usePageMeta";
 import SchoolLogin, { SchoolLoginLinks } from "@/components/SchoolLogin";
+import TeacherSignup from "@/components/TeacherSignup";
 
 // Supabase's email OTP length is a project-level setting (6 by default, up to
 // 10). The form used to render 8 slots AND hard-require exactly 8 characters
@@ -30,6 +31,7 @@ const VIEW = {
   CHILD_SIGNUP_BLOCKED: 'child_signup_blocked',
   STUDENT_LOGIN: 'student_login',
   TEACHER_LOGIN: 'teacher_login',
+  TEACHER_SIGNUP: 'teacher_signup',
 };
 
 export default function Login() {
@@ -662,8 +664,14 @@ export default function Login() {
       )}
 
       {(view === VIEW.STUDENT_LOGIN || view === VIEW.TEACHER_LOGIN) && (
-        <SchoolLogin mode={view === VIEW.TEACHER_LOGIN ? 'teacher' : 'student'} onBack={moveToChildLogin} />
+        <SchoolLogin
+          mode={view === VIEW.TEACHER_LOGIN ? 'teacher' : 'student'}
+          onBack={moveToChildLogin}
+          onTeacherSignup={() => moveToView(VIEW.TEACHER_SIGNUP)}
+        />
       )}
+
+      {view === VIEW.TEACHER_SIGNUP && <TeacherSignup onBack={() => moveToView(VIEW.TEACHER_LOGIN)} />}
 
       {view === VIEW.CHILD_SIGNUP_BLOCKED && (
         <>

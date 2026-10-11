@@ -7,12 +7,35 @@
 import { supabase } from '@/api/db';
 
 const STUDENT_EMAIL_DOMAIN = 'student.finntrack.local';
+const TEACHER_EMAIL_DOMAIN = 'teacher.finntrack.local';
 
-// Keep in sync with handle_new_user (0030) and create-student-account.
+// Students and teachers log in with a code plus a username, never an email.
+// These rebuild the synthetic address their account was created with -- keep
+// in sync with handle_new_user (0033), join-class and create-student-account.
 export const studentEmail = (classId, username) =>
   `${String(username || '').trim().toLowerCase()}.${String(classId).replaceAll('-', '')}@${STUDENT_EMAIL_DOMAIN}`;
 
+export const teacherEmail = (schoolId, username) =>
+  `${String(username || '').trim().toLowerCase()}.${String(schoolId).replaceAll('-', '')}@${TEACHER_EMAIL_DOMAIN}`;
+
 const num = (value) => (value === null || value === undefined ? null : Number(value));
+
+// Edge functions return their own error message in the body; surface that
+// instead of the generic "non-2xx status code".
+const invokeFunction = async (name, body, fallback) => {
+  const { data, error } = await supabase.functions.invoke(name, { body });
+  if (error) {
+    let message = error.message;
+    try {
+      const payload = await error.context?.json();
+      if (payload?.error) message = payload.error;
+    } catch {
+      // keep the generic message
+    }
+    throw new Error(message || fallback);
+  }
+  return data;
+};
 
 const rpc = async (fn, args) => {
   const { data, error } = await supabase.rpc(fn, args);
@@ -100,8 +123,8 @@ const LISTING_SELECT = '*, item:edu_store_items(*), holding:edu_holdings(price_p
 export const education = {
   // ---- Login ----
 
-  findClass: async (schoolName, classCode) => {
-    const data = await rpc('edu_find_class', { p_school_name: schoolName, p_class_code: classCode });
+  findClass: async (classCode) => {
+    const data = await rpc('edu_find_class', { p_class_code: classCode });
     const row = data?.[0];
     if (!row) return null;
     return {
@@ -109,8 +132,24 @@ export const education = {
       className: row.class_name,
       schoolName: row.school_name,
       allowStudentPasswordReset: row.allow_student_password_reset,
+      joinOpen: row.join_open,
+      seatsLeft: row.seats_left,
     };
   },
+
+  findSchool: async (passcode) => {
+    const data = await rpc('edu_find_school', { p_passcode: passcode });
+    const row = data?.[0];
+    if (!row) return null;
+    return { schoolId: row.school_id, schoolName: row.school_name };
+  },
+
+  // Student self-signup with a class code. Runs without a session.
+  joinClass: (payload) => invokeFunction('join-class', payload, 'Could not join that class.'),
+
+  // Free teacher sign-up: a new school (this teacher becomes its admin), or
+  // joining an existing one with its invite link. Runs without a session.
+  teacherSignup: (payload) => invokeFunction('teacher-signup', payload, 'Could not create your account.'),
 
   // ---- Portal ----
 
@@ -315,6 +354,62 @@ export const education = {
       earnedAt: earnedAt.get(row.key) || null,
     }));
   },
+
+  // ---- Teacher & school management ----
+
+  schoolSettings: () => rpc('edu_school_settings'),
+
+  rotateSchoolSecret: (which) => rpc('edu_rotate_school_secret', { p_which: which }),
+
+  myClasses: async () =>
+    (
+      await rows(
+        supabase
+          .from('classes')
+          .select('*')
+          .order('is_archived')
+          .order('created_at')
+      )
+    ).map((row) => ({
+      id: row.id,
+      schoolId: row.school_id,
+      educatorId: row.educator_id,
+      name: row.name,
+      code: row.code,
+      gradeLevel: row.grade_level,
+      timezone: row.timezone,
+      currencyName: row.currency_name,
+      seatLimit: row.seat_limit,
+      joinOpen: row.join_open,
+      isArchived: row.is_archived,
+      savingsRatePct: num(row.savings_rate_pct),
+      paydayDow: row.payday_dow,
+      createdAt: row.created_at,
+    })),
+
+  createClass: ({ name, gradeLevel, timezone, seatLimit }) =>
+    rpc('edu_create_class', {
+      p_name: name,
+      p_grade_level: gradeLevel,
+      p_timezone: timezone,
+      p_seat_limit: seatLimit,
+    }),
+
+  updateClass: (classId, changes = {}) =>
+    rpc('edu_update_class', {
+      p_class_id: classId,
+      p_name: changes.name ?? null,
+      p_grade_level: changes.gradeLevel ?? null,
+      p_seat_limit: changes.seatLimit ?? null,
+      p_join_open: changes.joinOpen ?? null,
+      p_timezone: changes.timezone ?? null,
+      p_currency_name: changes.currencyName ?? null,
+      p_savings_rate_pct: changes.savingsRatePct ?? null,
+      p_payday_dow: changes.paydayDow ?? null,
+      p_is_archived: changes.isArchived ?? null,
+    }),
+
+  // ---- Student profile ----
 
   updateProfile: ({
     displayName,

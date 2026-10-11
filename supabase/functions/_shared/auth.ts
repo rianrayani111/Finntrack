@@ -92,3 +92,26 @@ export async function requireEducator(req: Request) {
 
   return { uid: profile.id as string };
 }
+
+/**
+ * Creates the profile row for an account the admin API just made, and
+ * deletes that account if it fails.
+ *
+ * The signup trigger only fills profiles when raw_app_meta_data is already
+ * populated, which this project's GoTrue does not guarantee at INSERT time
+ * (see migration 0035). These finalize functions are granted to
+ * service_role only, so the anon key still cannot create a child, student
+ * or teacher.
+ */
+export async function finalizeAccountOrDelete(
+  userId: string,
+  fn: 'finn_finalize_child' | 'edu_finalize_student' | 'edu_finalize_educator',
+  args: Record<string, unknown>
+) {
+  const { error } = await supabaseAdmin.rpc(fn, args);
+  if (!error) return;
+
+  // An account with no profile cannot log in, so never leave one behind.
+  await supabaseAdmin.auth.admin.deleteUser(userId);
+  throw new HttpError(400, error.message || 'Could not finish creating that account.');
+}

@@ -1,7 +1,7 @@
 import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
 
 import { db, supabase } from '@/api/db';
-import { studentEmail } from '@/api/education';
+import { studentEmail, teacherEmail } from '@/api/education';
 
 // Schools & institutions accounts have no family, so no family subscription.
 const usesFamilyBilling = (role) => role === 'parent' || role === 'child';
@@ -188,8 +188,9 @@ export const AuthProvider = ({ children }) => {
     return login(studentEmail(classId, username), password, 'student');
   };
 
-  const loginEducator = async (email, password) => {
-    return login(email, password, 'educator');
+  // schoolId comes from education.findSchool (the school passcode step).
+  const loginEducator = async (schoolId, username, password) => {
+    return login(teacherEmail(schoolId, username), password, 'educator');
   };
 
   const signupParent = async (email, password, displayName = '') => {
